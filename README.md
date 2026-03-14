@@ -1,2 +1,2 @@
-# AURIA
-Autonomous Upgrade &amp; Repository Intelligence Automation
+# AQUELOR
+Autonomous Quality, Upgrade, Engineering, Learning, Orchestration & Repositories
