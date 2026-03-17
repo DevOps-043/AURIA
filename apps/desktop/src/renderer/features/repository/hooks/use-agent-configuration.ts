@@ -77,12 +77,55 @@ export interface AgentConfigurationSummary {
   autonomousDocuments: number;
 }
 
+// ─── Schedule Entries ────────────────────────────────────────────────
+
+export interface ScheduleEntry {
+  id: string;
+  enabled: boolean;
+  hour: number;       // 0-23
+  minute: number;     // 0-59
+  days: string[];     // ['*'] = daily, or ['1','3','5'] (cron day-of-week)
+  label: string;      // User-defined label (e.g. "Noche", "Madrugada")
+}
+
+export function generateScheduleId(): string {
+  return `sch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export const DAYS_OF_WEEK = [
+  { label: "L", cron: "1", name: "Lunes" },
+  { label: "M", cron: "2", name: "Martes" },
+  { label: "X", cron: "3", name: "Miercoles" },
+  { label: "J", cron: "4", name: "Jueves" },
+  { label: "V", cron: "5", name: "Viernes" },
+  { label: "S", cron: "6", name: "Sabado" },
+  { label: "D", cron: "0", name: "Domingo" },
+] as const;
+
+export const QUICK_TIMES = [
+  { label: "12 AM", hour: 0 },
+  { label: "3 AM", hour: 3 },
+  { label: "6 AM", hour: 6 },
+  { label: "9 AM", hour: 9 },
+  { label: "12 PM", hour: 12 },
+  { label: "3 PM", hour: 15 },
+  { label: "6 PM", hour: 18 },
+  { label: "9 PM", hour: 21 },
+] as const;
+
+export function formatTime12h(h: number, m: number): string {
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
 export interface AutoDevLocalConfig {
   maxParallelAgents: number;
   targetBranch: string;
   workBranchPrefix: string;
   maxLinesChanged: number;
   maxFilesPerRun: number;
+  scheduleEntries: ScheduleEntry[];
   models: {
     planning: string;
     coding: string;
@@ -99,6 +142,16 @@ const DEFAULT_LOCAL_CONFIG: AutoDevLocalConfig = {
   workBranchPrefix: "autodev/",
   maxLinesChanged: 2000,
   maxFilesPerRun: 30,
+  scheduleEntries: [
+    {
+      id: "sch_default_1",
+      enabled: true,
+      hour: 3,
+      minute: 0,
+      days: ["*"],
+      label: "Madrugada",
+    },
+  ],
   models: {
     planning: "gemini-3.1-pro-preview-customtools",
     coding: "gemini-3.1-pro-preview-customtools",
@@ -127,6 +180,11 @@ export interface AgentConfigMutations {
   updateModel: (role: "planning" | "coding" | "review" | "research", model: string) => Promise<void>;
   toggleTool: (toolSlug: string, enabled: boolean) => Promise<void>;
   updateToolAgents: (toolSlug: string, assigned: number, simultaneous: number) => void;
+  addScheduleEntry: () => void;
+  removeScheduleEntry: (entryId: string) => void;
+  updateScheduleEntry: (entryId: string, patch: Partial<ScheduleEntry>) => void;
+  toggleScheduleEntryEnabled: (entryId: string) => void;
+  toggleScheduleEntryDay: (entryId: string, day: string) => void;
 }
 
 interface AgentConfigurationState {
@@ -419,6 +477,11 @@ const NOOP_MUTATIONS: AgentConfigMutations = {
   updateModel: async () => {},
   toggleTool: async () => {},
   updateToolAgents: () => {},
+  addScheduleEntry: () => {},
+  removeScheduleEntry: () => {},
+  updateScheduleEntry: () => {},
+  toggleScheduleEntryEnabled: () => {},
+  toggleScheduleEntryDay: () => {},
 };
 
 const INITIAL_STATE: AgentConfigurationState = {
@@ -468,6 +531,13 @@ function parseAutoDevConfig(raw: Record<string, unknown>): Partial<AutoDevLocalC
   if (typeof raw.workBranchPrefix === "string") result.workBranchPrefix = raw.workBranchPrefix;
   if (typeof raw.maxLinesChanged === "number") result.maxLinesChanged = raw.maxLinesChanged;
   if (typeof raw.maxFilesPerRun === "number") result.maxFilesPerRun = raw.maxFilesPerRun;
+
+  if (Array.isArray(raw.scheduleEntries)) {
+    result.scheduleEntries = (raw.scheduleEntries as unknown[]).filter(
+      (e): e is ScheduleEntry =>
+        typeof e === "object" && e !== null && "id" in e && "hour" in e,
+    );
+  }
 
   const agents = raw.agents as Record<string, { model?: string }> | undefined;
   if (agents) {
@@ -899,6 +969,95 @@ export function useAgentConfiguration({
     }));
   }, []);
 
+  // ─── Schedule entry mutations ──────────────────────────────────
+
+  const persistScheduleEntries = useCallback((entries: ScheduleEntry[]) => {
+    void pushToWorker({ scheduleEntries: entries });
+  }, [pushToWorker]);
+
+  const addScheduleEntry = useCallback(() => {
+    setState((prev) => {
+      const newEntry: ScheduleEntry = {
+        id: generateScheduleId(),
+        enabled: true,
+        hour: 9,
+        minute: 0,
+        days: ["*"],
+        label: "",
+      };
+      const updated = [...prev.localConfig.scheduleEntries, newEntry];
+      persistScheduleEntries(updated);
+      return {
+        ...prev,
+        localConfig: { ...prev.localConfig, scheduleEntries: updated },
+      };
+    });
+  }, [persistScheduleEntries]);
+
+  const removeScheduleEntry = useCallback((entryId: string) => {
+    setState((prev) => {
+      const updated = prev.localConfig.scheduleEntries.filter((e) => e.id !== entryId);
+      persistScheduleEntries(updated);
+      return {
+        ...prev,
+        localConfig: { ...prev.localConfig, scheduleEntries: updated },
+      };
+    });
+  }, [persistScheduleEntries]);
+
+  const updateScheduleEntry = useCallback((entryId: string, patch: Partial<ScheduleEntry>) => {
+    setState((prev) => {
+      const updated = prev.localConfig.scheduleEntries.map((e) =>
+        e.id === entryId ? { ...e, ...patch } : e,
+      );
+      persistScheduleEntries(updated);
+      return {
+        ...prev,
+        localConfig: { ...prev.localConfig, scheduleEntries: updated },
+      };
+    });
+  }, [persistScheduleEntries]);
+
+  const toggleScheduleEntryEnabled = useCallback((entryId: string) => {
+    setState((prev) => {
+      const updated = prev.localConfig.scheduleEntries.map((e) =>
+        e.id === entryId ? { ...e, enabled: !e.enabled } : e,
+      );
+      persistScheduleEntries(updated);
+      return {
+        ...prev,
+        localConfig: { ...prev.localConfig, scheduleEntries: updated },
+      };
+    });
+  }, [persistScheduleEntries]);
+
+  const toggleScheduleEntryDay = useCallback((entryId: string, day: string) => {
+    setState((prev) => {
+      const updated = prev.localConfig.scheduleEntries.map((e) => {
+        if (e.id !== entryId) return e;
+        let newDays: string[];
+        if (day === "*") {
+          newDays = ["*"];
+        } else {
+          const current = e.days.filter((d) => d !== "*");
+          if (current.includes(day)) {
+            newDays = current.filter((d) => d !== day);
+            if (newDays.length === 0) newDays = ["*"];
+          } else {
+            newDays = [...current, day];
+            if (newDays.length === 7) newDays = ["*"];
+          }
+        }
+        return { ...e, days: newDays };
+      });
+      persistScheduleEntries(updated);
+      return {
+        ...prev,
+        localConfig: { ...prev.localConfig, scheduleEntries: updated },
+      };
+    });
+  }, [persistScheduleEntries]);
+
   const mutations: AgentConfigMutations = {
     updateAgentCount,
     updateTargetBranch,
@@ -908,6 +1067,11 @@ export function useAgentConfiguration({
     updateModel,
     toggleTool,
     updateToolAgents,
+    addScheduleEntry,
+    removeScheduleEntry,
+    updateScheduleEntry,
+    toggleScheduleEntryEnabled,
+    toggleScheduleEntryDay,
   };
 
   return { ...state, mutations };

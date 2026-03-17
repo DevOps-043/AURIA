@@ -11,7 +11,8 @@
       "Bash(node -e \"const p = require\\(''@tailwindcss/vite/package.json''\\); console.log\\(''@tailwindcss/vite version:'', p.version\\)\")",
       "Bash(node -e \"const p = require\\(''./node_modules/tailwindcss/package.json''\\); console.log\\(''tailwindcss:'', p.version\\)\")",
       "Bash(npm run:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

@@ -525,4 +525,11 @@ export const desktopBridge = {
     }
     return {};
   },
+
+  // ─── App Settings (auto-launch / background) ─────────────────
+  getAutoLaunchEnabled: async (): Promise<boolean> =>
+    window.auria?.getAutoLaunchEnabled?.() ?? false,
+
+  setAutoLaunchEnabled: async (enabled: boolean): Promise<boolean> =>
+    window.auria?.setAutoLaunchEnabled?.(enabled) ?? false,
 };

@@ -5,6 +5,8 @@ import {
   Bug,
   Cable,
   ChevronDown,
+  ChevronUp,
+  Clock,
   Coins,
   Cpu,
   FileText,
@@ -13,16 +15,24 @@ import {
   Loader2,
   Minus,
   Orbit,
+  Pencil,
   Plus,
   Rocket,
   Shield,
+  Trash2,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { desktopBridge } from "@/shared/api/desktop-bridge";
 import { Dropdown } from "@/shared/components/ui/dropdown";
-import { useAgentConfiguration } from "../hooks/use-agent-configuration";
+import {
+  useAgentConfiguration,
+  type ScheduleEntry,
+  DAYS_OF_WEEK,
+  QUICK_TIMES,
+  formatTime12h,
+} from "../hooks/use-agent-configuration";
 
 /* ────────────────────────────────────────────────────────────────── */
 /*  Props                                                            */
@@ -148,7 +158,13 @@ export const AgentConfig: React.FC<AgentConfigProps> = ({ repositoryId, workspac
         </Panel>
       ) : null}
 
-      {/* A: Metric Cards — Wallet + Capacity */}
+      {/* A: Schedule Configuration */}
+      <ScheduleConfigPanel
+        entries={localConfig.scheduleEntries}
+        mutations={mutations}
+      />
+
+      {/* B: Metric Cards — Wallet + Capacity */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <MetricCard
           title="Billetera AU" icon={Coins}
@@ -166,7 +182,7 @@ export const AgentConfig: React.FC<AgentConfigProps> = ({ repositoryId, workspac
         />
       </div>
 
-      {/* B: General Configuration */}
+      {/* C: General Configuration */}
       <Panel title="Configuracion general" subtitle="Parametros globales del sistema de agentes para este repositorio.">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-[auto_1fr_auto]">
           <AgentCountStepper
@@ -199,7 +215,7 @@ export const AgentConfig: React.FC<AgentConfigProps> = ({ repositoryId, workspac
         ) : null}
       </Panel>
 
-      {/* C: Model Configuration */}
+      {/* D: Model Configuration */}
       <Panel title="Configuracion de modelos" subtitle="Selecciona el modelo de IA para cada rol del pipeline de agentes.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {MODEL_ROLES.map((role) => (
@@ -215,7 +231,7 @@ export const AgentConfig: React.FC<AgentConfigProps> = ({ repositoryId, workspac
         </div>
       </Panel>
 
-      {/* D: Interactive Tool Selector */}
+      {/* E: Interactive Tool Selector */}
       <Panel title="Herramientas de implementacion" subtitle="Selecciona las herramientas que el sistema usara. Configura los agentes asignados a cada una.">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {INTERACTIVE_TOOLS.map((tool, index) => (
@@ -548,6 +564,293 @@ function ToolSelectCard({
         ) : null}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+/*  Schedule Configuration Panel                                     */
+/* ────────────────────────────────────────────────────────────────── */
+
+function ScheduleConfigPanel({
+  entries,
+  mutations,
+}: {
+  entries: ScheduleEntry[];
+  mutations: {
+    addScheduleEntry: () => void;
+    removeScheduleEntry: (id: string) => void;
+    updateScheduleEntry: (id: string, patch: Partial<ScheduleEntry>) => void;
+    toggleScheduleEntryEnabled: (id: string) => void;
+    toggleScheduleEntryDay: (id: string, day: string) => void;
+  };
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const activeCount = entries.filter((e) => e.enabled).length;
+
+  return (
+    <Panel
+      title="Horarios de ejecucion automatica"
+      subtitle={`Define los horarios en que AQELOR ejecutara los agentes de manera autonoma. ${activeCount} de ${entries.length} activos.`}
+    >
+      {/* Header actions */}
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4 text-primary" />
+          <span>{activeCount > 0 ? `${activeCount} horario${activeCount > 1 ? "s" : ""} activo${activeCount > 1 ? "s" : ""}` : "Sin horarios activos"}</span>
+        </div>
+        <button
+          type="button"
+          onClick={mutations.addScheduleEntry}
+          className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/20 hover:border-primary/50"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Agregar horario
+        </button>
+      </div>
+
+      {/* Empty state */}
+      {entries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-border/50 bg-background/30 py-12 text-center">
+          <Clock className="mb-3 h-10 w-10 text-muted-foreground opacity-30" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+            Sin horarios configurados
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground opacity-60">
+            Agrega un horario para automatizar la ejecucion de agentes
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {entries.map((entry, index) => {
+            const isEditing = editingId === entry.id;
+            const daysLabel = entry.days.includes("*")
+              ? "Diario"
+              : entry.days.map((d) => DAYS_OF_WEEK.find((dw) => dw.cron === d)?.label ?? d).join(", ");
+
+            return (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04 }}
+                className={cn(
+                  "overflow-hidden rounded-2xl border transition-all duration-300",
+                  isEditing
+                    ? "border-primary/40 bg-card/60 shadow-lg shadow-primary/5"
+                    : entry.enabled
+                      ? "border-border/60 bg-card/40 hover:border-border"
+                      : "border-border/40 bg-background/20 opacity-60",
+                )}
+              >
+                {/* Entry header row */}
+                <div className="flex items-center gap-4 px-5 py-4">
+                  {/* Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => mutations.toggleScheduleEntryEnabled(entry.id)}
+                    className={cn(
+                      "relative inline-flex h-5 w-10 shrink-0 items-center rounded-full transition-all duration-300",
+                      entry.enabled ? "bg-primary" : "bg-muted-foreground/20",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-3.5 w-3.5 rounded-full bg-white transition-all duration-300",
+                        entry.enabled ? "translate-x-[22px]" : "translate-x-1",
+                      )}
+                    />
+                  </button>
+
+                  {/* Time + info */}
+                  <div
+                    className="flex flex-1 cursor-pointer items-center gap-3"
+                    onClick={() => setEditingId(isEditing ? null : entry.id)}
+                  >
+                    <div className="shrink-0 rounded-xl border border-primary/20 bg-primary/10 px-3 py-1.5">
+                      <span className="text-sm font-black tabular-nums text-primary">
+                        {formatTime12h(entry.hour, entry.minute)}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-foreground">
+                        {entry.label || formatTime12h(entry.hour, entry.minute)}
+                      </p>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {daysLabel}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(isEditing ? null : entry.id)}
+                      className={cn(
+                        "rounded-xl p-2 transition-all",
+                        isEditing
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                      )}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => mutations.removeScheduleEntry(entry.id)}
+                      className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-rose-500/10 hover:text-rose-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded editor */}
+                <AnimatePresence>
+                  {isEditing ? (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-5 border-t border-border/40 px-5 pb-5 pt-4">
+                        {/* Label */}
+                        <div>
+                          <p className="mb-1.5 text-[7px] font-black uppercase tracking-[0.22em] text-muted-foreground">
+                            Etiqueta (opcional)
+                          </p>
+                          <input
+                            type="text"
+                            value={entry.label}
+                            onChange={(e) => mutations.updateScheduleEntry(entry.id, { label: e.target.value })}
+                            placeholder="Ej: Madrugada, Medio dia, Noche..."
+                            className="h-9 w-full max-w-sm rounded-xl border border-border/60 bg-background/40 px-3 text-sm font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                          />
+                        </div>
+
+                        {/* Time picker */}
+                        <div>
+                          <p className="mb-2 text-[7px] font-black uppercase tracking-[0.22em] text-muted-foreground">
+                            Hora de ejecucion
+                          </p>
+                          <div className="flex flex-wrap items-center gap-4">
+                            {/* Hour stepper */}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => mutations.updateScheduleEntry(entry.id, { hour: (entry.hour - 1 + 24) % 24 })}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                              <div className="flex h-11 w-12 items-center justify-center rounded-xl border border-border/60 bg-background/40 shadow-inner">
+                                <span className="text-lg font-black tabular-nums text-foreground">
+                                  {entry.hour.toString().padStart(2, "0")}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => mutations.updateScheduleEntry(entry.id, { hour: (entry.hour + 1) % 24 })}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            <span className="text-xl font-black text-muted-foreground/30">:</span>
+
+                            {/* Minute stepper */}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => mutations.updateScheduleEntry(entry.id, { minute: (entry.minute - 15 + 60) % 60 })}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                              <div className="flex h-11 w-12 items-center justify-center rounded-xl border border-border/60 bg-background/40 shadow-inner">
+                                <span className="text-lg font-black tabular-nums text-foreground">
+                                  {entry.minute.toString().padStart(2, "0")}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => mutations.updateScheduleEntry(entry.id, { minute: (entry.minute + 15) % 60 })}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background/40 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Quick presets */}
+                            <div className="flex flex-wrap gap-1.5">
+                              {QUICK_TIMES.map((qt) => (
+                                <button
+                                  key={qt.hour}
+                                  type="button"
+                                  onClick={() => mutations.updateScheduleEntry(entry.id, { hour: qt.hour, minute: 0 })}
+                                  className={cn(
+                                    "rounded-lg border px-2 py-1.5 text-[8px] font-black uppercase tracking-tight transition-all",
+                                    entry.hour === qt.hour && entry.minute === 0
+                                      ? "border-primary/40 bg-primary/10 text-primary"
+                                      : "border-border/50 bg-background/30 text-muted-foreground hover:border-border hover:text-foreground",
+                                  )}
+                                >
+                                  {qt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Day selector */}
+                        <div>
+                          <p className="mb-2 text-[7px] font-black uppercase tracking-[0.22em] text-muted-foreground">
+                            Dias de ejecucion
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => mutations.toggleScheduleEntryDay(entry.id, "*")}
+                              className={cn(
+                                "rounded-xl border px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all",
+                                entry.days.includes("*")
+                                  ? "border-primary/40 bg-primary/10 text-primary"
+                                  : "border-border/50 bg-background/30 text-muted-foreground hover:border-border",
+                              )}
+                            >
+                              Diario
+                            </button>
+                            {DAYS_OF_WEEK.map((day) => (
+                              <button
+                                key={day.cron}
+                                type="button"
+                                onClick={() => mutations.toggleScheduleEntryDay(entry.id, day.cron)}
+                                title={day.name}
+                                className={cn(
+                                  "flex h-8 w-8 items-center justify-center rounded-lg border text-[9px] font-black transition-all",
+                                  !entry.days.includes("*") && entry.days.includes(day.cron)
+                                    ? "border-primary/40 bg-primary/10 text-primary"
+                                    : "border-border/50 bg-background/30 text-muted-foreground hover:border-border",
+                                )}
+                              >
+                                {day.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </Panel>
   );
 }
 

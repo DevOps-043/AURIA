@@ -73,6 +73,10 @@ export type AuriaBridge = {
   shell: {
     runCommand: (command: string, cwd: string) => Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }>;
   };
+
+  // App Settings (auto-launch / background)
+  getAutoLaunchEnabled: () => Promise<boolean>;
+  setAutoLaunchEnabled: (enabled: boolean) => Promise<boolean>;
 };
 
 declare global {

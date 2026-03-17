@@ -112,6 +112,12 @@ const auriaBridge = {
     runCommand: (command: string, cwd: string) =>
       ipcRenderer.invoke("shell:runCommand", command, cwd) as Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }>,
   },
+
+  // ─── App Settings (auto-launch / background) ─────────────────
+  getAutoLaunchEnabled: () =>
+    ipcRenderer.invoke("app:getAutoLaunch") as Promise<boolean>,
+  setAutoLaunchEnabled: (enabled: boolean) =>
+    ipcRenderer.invoke("app:setAutoLaunch", enabled) as Promise<boolean>,
 };
 
 contextBridge.exposeInMainWorld("auria", auriaBridge);

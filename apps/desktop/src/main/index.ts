@@ -4,6 +4,8 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "
 import { createDemoWorkspaceSnapshot } from "@auria/domain";
 import { runtimeHealthSchema } from "@auria/contracts";
 import { registerGitHubHandlers } from "./github-handlers";
+import { createTray, destroyTray } from "./tray-manager";
+import { getAutoLaunchEnabled, setAutoLaunchEnabled, wasLaunchedHidden } from "./auto-launch-manager";
 
 const isDev = Boolean(process.env.ELECTRON_RENDERER_URL);
 if (isDev) {
@@ -17,6 +19,7 @@ if (isDev) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let isQuitting = false;
 let workspaceSnapshot = createDemoWorkspaceSnapshot();
 const RENDERER_LOAD_RETRY_MS = [150, 300, 600, 1_200, 2_000];
 
@@ -328,7 +331,17 @@ const createMainWindow = async () => {
   });
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
+    if (!wasLaunchedHidden()) {
+      mainWindow?.show();
+    }
+  });
+
+  // Intercept window close: hide to tray instead of quitting
+  mainWindow.on('close', (event) => {
+    if (!isQuitting && mainWindow) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
   });
 
   attachWindowDiagnostics(mainWindow);
@@ -516,6 +529,14 @@ const registerIpcHandlers = () => {
       });
     });
   });
+
+  // ─── App Settings IPC (auto-launch / background) ─────────────
+  ipcMain.handle("app:getAutoLaunch", () => getAutoLaunchEnabled());
+
+  ipcMain.handle("app:setAutoLaunch", (_e, enabled: boolean) => {
+    setAutoLaunchEnabled(enabled);
+    return getAutoLaunchEnabled();
+  });
 };
 
 // ─── Second instance handler (Windows/Linux deep link) ──────────────
@@ -537,8 +558,18 @@ app.whenReady()
     registerGitHubHandlers(secureStore);
     await createMainWindow();
 
+    // Initialize system tray after the main window is created
+    if (mainWindow) {
+      createTray(mainWindow, () => {
+        isQuitting = true;
+      });
+    }
+
     app.on("activate", async () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+      } else if (BrowserWindow.getAllWindows().length === 0) {
         await createMainWindow();
       }
     });
@@ -552,8 +583,12 @@ app.whenReady()
     console.error("[App] Failed to initialize desktop shell:", error);
   });
 
+// App lives in the system tray — do not quit when the window is hidden.
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  // intentionally empty: the tray keeps the process alive
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
+  destroyTray();
 });

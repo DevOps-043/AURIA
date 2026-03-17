@@ -2,20 +2,19 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '@/shared/components/ui/logo';
 import {
-  LogOut, Activity, Shield, Brain, Target, Cpu, Settings,
+  LogOut, Activity, Settings,
   User as UserIcon, Sun, Moon, Monitor, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/shared/hooks/use-auth';
 import { useTheme, type Theme } from '@/shared/hooks/use-theme';
 import { useDashboardData } from './hooks/use-dashboard-data';
-import { SidebarItem } from './components/sidebar-item';
 import { RepoCard, EmptyRepoSlot } from './components/repo-card';
 import { ActivityFeed } from './components/activity-feed';
 import { RepoPickerModal } from './components/repo-picker-modal';
 import { SettingsView } from '../settings/settings-view';
 import { RepositoryDetailView } from '../repository/repository-detail-view';
 
-type TabId = 'dashboard' | 'missions' | 'memory' | 'policies' | 'models' | 'settings' | 'repository';
+type TabId = 'dashboard' | 'settings' | 'repository';
 
 const MAX_VISIBLE_SLOTS = 4;
 
@@ -38,7 +37,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onSignOut }) => {
   const slotsAvailable = Math.max(0, plan.totalSlots - plan.usedSlots);
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Repo Picker Modal */}
       {showRepoPicker && workspaceId && (
         <RepoPickerModal
@@ -51,23 +50,16 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onSignOut }) => {
         />
       )}
 
-      {/* Sidebar */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onSignOut={onSignOut} />
+      {/* Header — logo + user avatar */}
+      <AppHeader
+        onOpenSettings={() => setActiveTab('settings')}
+        onSignOut={onSignOut}
+        onLogoClick={() => setActiveTab('dashboard')}
+      />
 
       {/* Main viewport */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
-
-        <DashboardHeader 
-          planName={plan.name} 
-          title={
-            activeTab === 'settings' 
-              ? 'Identidad / Configuracion' 
-              : activeTab === 'repository'
-              ? 'Sistema / Nodo de repositorio'
-              : 'Espacio de trabajo / Nodos activos'
-          } 
-        />
 
         <main className="flex-1 overflow-y-auto p-8 custom-scrollbar relative z-10">
           <motion.div
@@ -134,51 +126,35 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onSignOut }) => {
   );
 };
 
-// ─── Layout Sub-components ──────────────────────────────────────────────
+/* ────────────────────────────────────────────────────────────────── */
+/*  AppHeader — logo left, user avatar right                        */
+/* ────────────────────────────────────────────────────────────────── */
 
-const NAV_ITEMS: { id: TabId; icon: React.ReactNode; tooltip: string }[] = [
-  { id: 'dashboard', icon: <Activity className="w-5 h-5" />, tooltip: 'Centro de control' },
-  { id: 'missions', icon: <Target className="w-5 h-5" />, tooltip: 'Misiones' },
-  { id: 'memory', icon: <Brain className="w-5 h-5" />, tooltip: 'Memoria' },
-  { id: 'policies', icon: <Shield className="w-5 h-5" />, tooltip: 'Politicas' },
-  { id: 'models', icon: <Cpu className="w-5 h-5" />, tooltip: 'Modelos de IA' },
-];
-
-function Sidebar({
-  activeTab,
-  onTabChange,
+function AppHeader({
+  onOpenSettings,
   onSignOut,
+  onLogoClick,
 }: {
-  activeTab: TabId;
-  onTabChange: (tab: TabId) => void;
+  onOpenSettings: () => void;
   onSignOut: () => void;
+  onLogoClick: () => void;
 }) {
   return (
-    <aside className="w-20 shrink-0 h-screen border-r border-border bg-card flex flex-col py-6 items-center overflow-visible z-50">
-      <div className="mb-8 shrink-0">
-        <Logo className="scale-75" hideText />
-      </div>
+    <header className="h-16 shrink-0 flex items-center justify-between px-6 border-b border-border/50 bg-card/60 backdrop-blur-xl z-20">
+      <button
+        type="button"
+        onClick={onLogoClick}
+        className="flex items-center hover:opacity-80 transition-opacity"
+      >
+        <Logo className="scale-[0.35] origin-left -my-6" hideText />
+      </button>
 
-      <nav className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden custom-scrollbar px-3 pb-6">
-        <div className="flex flex-col gap-6 w-full items-center">
-        {NAV_ITEMS.map((item) => (
-          <SidebarItem
-            key={item.id}
-            icon={item.icon}
-            active={activeTab === item.id}
-            onClick={() => onTabChange(item.id)}
-            tooltip={item.tooltip}
-          />
-        ))}
-        </div>
-      </nav>
-
-      <div className="mt-4 shrink-0 flex flex-col items-center w-full px-3 pb-2">
-        <UserMenu onSignOut={onSignOut} onOpenSettings={() => onTabChange('settings')} />
-      </div>
-    </aside>
+      <UserMenu onSignOut={onSignOut} onOpenSettings={onOpenSettings} />
+    </header>
   );
 }
+
+// ─── Layout Sub-components ──────────────────────────────────────────────
 
 function UserMenu({ onSignOut, onOpenSettings }: { onSignOut: () => void; onOpenSettings: () => void }) {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -200,7 +176,7 @@ function UserMenu({ onSignOut, onOpenSettings }: { onSignOut: () => void; onOpen
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Usuario';
 
   return (
-    <div className="relative w-full flex justify-center" ref={menuRef}>
+    <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-transparent hover:border-primary/50 transition-all active:scale-95 bg-muted flex items-center justify-center group"
@@ -215,10 +191,10 @@ function UserMenu({ onSignOut, onOpenSettings }: { onSignOut: () => void; onOpen
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, x: 20, y: 10 }}
-            animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, x: 10 }}
-            className="absolute left-full ml-4 bottom-0 w-64 bg-popover border border-border rounded-2xl shadow-2xl p-2 z-[100] backdrop-blur-xl"
+            initial={{ opacity: 0, scale: 0.95, y: -5 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -5 }}
+            className="absolute right-0 top-full mt-2 w-64 bg-popover border border-border rounded-2xl shadow-2xl p-2 z-[100] backdrop-blur-xl"
           >
             <div className="px-4 py-3 border-b border-border mb-2 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -297,20 +273,6 @@ function ThemeButton({
     >
       {icon}
     </button>
-  );
-}
-
-function DashboardHeader({ planName, title }: { planName: string; title: string }) {
-  return (
-    <header className="h-16 flex items-center justify-between px-8 border-b border-border/50 bg-background/40 backdrop-blur-xl z-20">
-      <span className="text-[10px] font-black text-primary tracking-[0.3em] uppercase">
-        {title}
-      </span>
-      <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/5 border border-blue-500/10 rounded-full">
-        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">{planName}</span>
-      </div>
-    </header>
   );
 }
 

@@ -62,7 +62,7 @@ export const EmbeddedTerminal: React.FC<EmbeddedTerminalProps> = ({ cwd }) => {
   };
 
   return (
-    <div className="bg-[#05070a] border border-border/50 rounded-2xl flex flex-col h-full overflow-hidden shadow-2xl">
+    <div className="bg-card border border-border/50 rounded-2xl flex flex-col h-full overflow-hidden shadow-2xl">
       <div className="px-4 py-2 border-b border-border/30 flex items-center justify-between bg-muted/10">
         <div className="flex items-center gap-2">
           <TerminalIcon className="w-3.5 h-3.5 text-primary" />

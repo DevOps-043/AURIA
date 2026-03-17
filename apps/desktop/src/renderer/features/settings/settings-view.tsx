@@ -9,17 +9,19 @@ import {
   CreditCard,
   Fingerprint,
   Key,
+  Monitor,
 } from 'lucide-react';
 import { ProfileForm } from './components/profile-form';
 import { GitHubConnect } from './components/github-connect';
 import { SecurityForm } from './components/security-form';
 import { BillingConsole } from './components/billing-console';
 import { ApiKeysManager } from './components/api-keys-manager';
+import { GeneralSettings } from './components/general-settings';
 
-type SettingsTab = 'profile' | 'connections' | 'api-keys' | 'notifications' | 'privacy' | 'billing';
+type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'notifications' | 'privacy' | 'billing';
 
 export const SettingsView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 
   return (
     <div className="max-w-[1520px] mx-auto px-4 md:px-6 py-8 md:py-10 xl:py-12 space-y-8 md:space-y-10 pb-24">
@@ -43,8 +45,14 @@ export const SettingsView: React.FC = () => {
       <div className="space-y-5 md:space-y-6">
         <div className="rounded-[2rem] border border-border/50 bg-card/35 backdrop-blur-xl p-3 md:p-4">
           <div className="flex flex-wrap gap-2">
-            <TabButton 
-              active={activeTab === 'profile'} 
+            <TabButton
+              active={activeTab === 'general'}
+              onClick={() => setActiveTab('general')}
+              icon={<Monitor className="w-4 h-4" />}
+              label="General"
+            />
+            <TabButton
+              active={activeTab === 'profile'}
               onClick={() => setActiveTab('profile')}
               icon={<User className="w-4 h-4" />}
               label="Identidad"
@@ -102,10 +110,21 @@ export const SettingsView: React.FC = () => {
               transition={{ duration: 0.2 }}
               className="bg-card/40 backdrop-blur-2xl border border-border/60 rounded-[2.5rem] md:rounded-[2.8rem] p-6 md:p-8 xl:p-10 shadow-2xl shadow-black/5 overflow-hidden min-w-0"
             >
+              {activeTab === 'general' && (
+                <section className="space-y-8 md:space-y-10 min-w-0">
+                  <SectionHeader
+                    title="Configuracion general"
+                    subtitle="Comportamiento del sistema, inicio automatico y ejecucion en segundo plano"
+                    icon={<Monitor className="w-5 h-5" />}
+                  />
+                  <GeneralSettings />
+                </section>
+              )}
+
               {activeTab === 'profile' && (
                 <section className="space-y-8 md:space-y-10 min-w-0">
-                  <SectionHeader 
-                    title="Gestion de identidad" 
+                  <SectionHeader
+                    title="Gestion de identidad"
                     subtitle="Configura tu informacion principal y tus datos profesionales"
                     icon={<Fingerprint className="w-5 h-5" />}
                   />

@@ -72,8 +72,8 @@ export const CodeTabs: React.FC<CodeTabsProps> = ({
   };
 
   return (
-    <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-[1.75rem] border border-border/60 bg-[#0a0d13] shadow-2xl shadow-black/20">
-      <div className="flex items-center justify-between border-b border-border/40 bg-white/[0.03] px-4 py-3">
+    <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-[1.75rem] border border-border/60 bg-card shadow-2xl shadow-black/10 dark:shadow-black/20">
+      <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <FileCode2 className="h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0">
@@ -122,7 +122,7 @@ export const CodeTabs: React.FC<CodeTabsProps> = ({
         </div>
       </div>
 
-      <div className="border-b border-border/40 bg-white/[0.02]">
+      <div className="border-b border-border/40 bg-muted/20">
         <div className="flex min-w-0 gap-1 overflow-x-auto px-3 py-2 custom-scrollbar">
           {files.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border/40 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -249,7 +249,7 @@ export const CodeTabs: React.FC<CodeTabsProps> = ({
               </div>
 
               <div className="min-h-0 flex-1 overflow-auto overscroll-contain px-4 py-4 custom-scrollbar [scrollbar-gutter:stable]">
-                <div className="min-w-max rounded-[1.25rem] border border-border/40 bg-white/[0.02]">
+                <div className="min-w-max rounded-[1.25rem] border border-border/40 bg-muted/20">
                   <div className="border-b border-border/30 px-4 py-2 text-[10px] font-medium text-muted-foreground">
                     // {repoFullName} :: {activeFile.path}
                   </div>
@@ -268,7 +268,7 @@ export const CodeTabs: React.FC<CodeTabsProps> = ({
                       <div
                         key={`${activeFile.sha}-${index}`}
                         className={cn(
-                          'grid grid-cols-[56px_minmax(0,1fr)] gap-4 px-4 hover:bg-white/[0.03]',
+                          'grid grid-cols-[56px_minmax(0,1fr)] gap-4 px-4 hover:bg-muted/30',
                           changedLineSet.has(index + 1) && 'border-l-2 border-emerald-400 bg-emerald-500/[0.08]',
                         )}
                       >
