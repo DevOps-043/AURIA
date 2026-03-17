@@ -1,0 +1,14 @@
+{
+  "name": "@auria/domain",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@auria/contracts": "*"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types src/services/policy-guards.test.ts && node --experimental-strip-types src/services/aqelor-feasibility.test.ts && node --experimental-strip-types src/services/billing-commerce.test.ts",
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-electron/
+.out/
+out/
+.electron/
+coverage/
+.vite/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.log
+supabase/.temp/

@@ -1,0 +1,32 @@
+{
+  "name": "@auria/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "out/main/index.cjs",
+  "dependencies": {
+    "@auria/contracts": "*",
+    "@auria/domain": "*",
+    "@auria/ui": "*",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@supabase/supabase-js": "^2.99.1",
+    "@tanstack/react-query": "^5.90.21",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.36.0",
+    "gsap": "^3.14.2",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^5.0.11"
+  },
+  "scripts": {
+    "build": "electron-vite build",
+    "dev": "electron-vite dev",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit"
+  }
+}

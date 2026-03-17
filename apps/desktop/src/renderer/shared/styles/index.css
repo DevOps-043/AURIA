@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  /* Dark Mode (Default) - Based on Branding Guide */
+  --background: #0B0F14;      /* Obsidian */
+  --secondary-bg: #111827;    /* Ink */
+  --card: #171C23;            /* Graphite */
+  --elevated: #1E2632;        /* Elevated Surface */
+  --popover: #111827;         /* Ink */
+  --foreground: #F5F7FB;      /* Frost */
+  --muted-foreground: #A8B3C4;
+  --text-muted: #7C8798;
+  --border: #263042;          /* Border Subtle */
+  --border-strong: #344054;   /* Border Strong */
+  --secondary: #2A3342;       /* Slate */
+  
+  --primary: #3B82F6;         /* Electric Blue */
+  --accent: #22D3EE;          /* Signal Cyan */
+  --success: #22C55E;         /* Success Mint */
+  --warning: #F59E0B;         /* Warning Amber */
+  --destructive: #EF4444;     /* Danger Coral */
+  --pulse: #8B5CF6;           /* Violet Pulse */
+}
+
+.light {
+  /* Light Mode - Based on Branding Guide */
+  --background: #F5F7FB;      /* Frost */
+  --secondary-bg: #EEF2F8;
+  --card: #FFFFFF;
+  --elevated: #FCFDFE;        /* Elevated Surface Light */
+  --popover: #FFFFFF;
+  --foreground: #111827;      /* Ink */
+  --muted-foreground: #475569;
+  --text-muted: #64748B;
+  --border: #D7DFEA;          /* Border Subtle Light */
+  --border-strong: #C4D0E0;   /* Border Strong Light */
+  --secondary: #f1f5f9;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-elevated: var(--elevated);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--secondary-bg);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Premium Date Input Styling */
+input[type="date"]::-webkit-datetime-edit-text {
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: var(--foreground);
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field:focus,
+input[type="date"]::-webkit-datetime-edit-day-field:focus,
+input[type="date"]::-webkit-datetime-edit-year-field:focus {
+  background-color: var(--primary);
+  border-radius: 4px;
+  color: white;
+}
+
+/* Premium Select Styling */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237C8798' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-position: right 1rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@auria/local-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/vertex-sdk": "^0.14.4",
+    "@auria/contracts": "*",
+    "@auria/domain": "*",
+    "@google-cloud/vertexai": "^1.10.0",
+    "@google/generative-ai": "^0.24.1"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --pretty false --noEmit",
+    "demo": "node --experimental-strip-types src/index.ts --demo",
+    "dev": "node --watch --experimental-strip-types src/index.ts --demo",
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit"
+  }
+}
