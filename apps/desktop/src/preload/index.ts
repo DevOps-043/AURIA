@@ -15,6 +15,11 @@ import type {
   GitHubRepo,
   GitHubUser,
 } from "../shared/github-types";
+import {
+  AUTODEV_RUNTIME_CHANNEL,
+  type AutodevRunRequest,
+  type AutodevRuntimeSnapshot,
+} from "../shared/autodev-types";
 
 const auriaBridge = {
   // ─── Secure Storage (OS-level encryption via safeStorage) ─────
@@ -100,6 +105,21 @@ const auriaBridge = {
     ipcRenderer.invoke("autodev:get-config") as Promise<{ config: Record<string, unknown> }>,
   autodevUpdateConfig: (updates: Record<string, unknown>) =>
     ipcRenderer.invoke("autodev:update-config", updates) as Promise<{ config: Record<string, unknown> }>,
+  autodevGetRuntime: () =>
+    ipcRenderer.invoke("autodev:get-runtime") as Promise<AutodevRuntimeSnapshot>,
+  autodevSetContext: (context: AutodevRunRequest) =>
+    ipcRenderer.invoke("autodev:set-context", context) as Promise<{ success: boolean }>,
+  autodevRunNow: (request?: AutodevRunRequest) =>
+    ipcRenderer.invoke("autodev:run-now", request) as Promise<{ success: boolean; runId?: string; error?: string }>,
+  autodevAbortRun: () =>
+    ipcRenderer.invoke("autodev:abort-run") as Promise<{ success: boolean }>,
+  onAutodevRuntimeUpdate: (callback: (snapshot: AutodevRuntimeSnapshot) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, snapshot: AutodevRuntimeSnapshot) => {
+      callback(snapshot);
+    };
+    ipcRenderer.on(AUTODEV_RUNTIME_CHANNEL, listener);
+    return () => ipcRenderer.removeListener(AUTODEV_RUNTIME_CHANNEL, listener);
+  },
 
   // ─── Filesystem & Shell ────────────────────────────────────────
   fs: {

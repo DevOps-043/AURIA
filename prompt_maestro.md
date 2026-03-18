@@ -1,3 +1,10 @@
+> **DEPRECADO:** Este archivo ha sido reemplazado por el sistema modular en `prompts/`.
+> Usar: `prompts/_contexto-stack.md` + `prompts/_maestro-universal.md` + prompt especializado.
+> Ver `prompts/README.md` para guía de uso.
+> Este archivo se conserva como referencia histórica.
+
+---
+
 Actúa como un Staff Engineer / Principal Engineer / Software Architect con experiencia real en:
 
 - arquitectura de software escalable

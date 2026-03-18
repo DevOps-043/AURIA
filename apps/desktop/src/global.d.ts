@@ -14,6 +14,10 @@ import type {
   GitHubRepo,
   GitHubUser,
 } from "./shared/github-types";
+import type {
+  AutodevRunRequest,
+  AutodevRuntimeSnapshot,
+} from "./shared/autodev-types";
 
 declare global {
   interface Window {
@@ -66,6 +70,11 @@ declare global {
       // AutoDev Agent Configuration
       autodevGetConfig: () => Promise<{ config: Record<string, unknown> }>;
       autodevUpdateConfig: (updates: Record<string, unknown>) => Promise<{ config: Record<string, unknown> }>;
+      autodevGetRuntime: () => Promise<AutodevRuntimeSnapshot>;
+      autodevSetContext: (context: AutodevRunRequest) => Promise<{ success: boolean }>;
+      autodevRunNow: (request?: AutodevRunRequest) => Promise<{ success: boolean; runId?: string; error?: string }>;
+      autodevAbortRun: () => Promise<{ success: boolean }>;
+      onAutodevRuntimeUpdate: (callback: (snapshot: AutodevRuntimeSnapshot) => void) => () => void;
 
       // Filesystem & Shell
       fs: {
@@ -75,6 +84,10 @@ declare global {
       shell: {
         runCommand: (command: string, cwd: string) => Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }>;
       };
+
+      // App Settings
+      getAutoLaunchEnabled: () => Promise<boolean>;
+      setAutoLaunchEnabled: (enabled: boolean) => Promise<boolean>;
     };
   }
 }

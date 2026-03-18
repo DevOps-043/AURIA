@@ -539,6 +539,33 @@ function parseAutoDevConfig(raw: Record<string, unknown>): Partial<AutoDevLocalC
     );
   }
 
+  if (Array.isArray(raw.enabledToolSlugs)) {
+    result.enabledToolSlugs = new Set((raw.enabledToolSlugs as unknown[]).map(String));
+  }
+
+  if (raw.toolAgents && typeof raw.toolAgents === "object") {
+    result.toolAgents = Object.fromEntries(
+      Object.entries(raw.toolAgents as Record<string, { assigned?: number; simultaneous?: number }>)
+        .map(([slug, allocation]) => [
+          slug,
+          {
+            assigned: typeof allocation.assigned === "number" ? allocation.assigned : 1,
+            simultaneous: typeof allocation.simultaneous === "number" ? allocation.simultaneous : 1,
+          },
+        ]),
+    );
+  }
+
+  const directModels = raw.models as Record<string, string> | undefined;
+  if (directModels) {
+    result.models = {
+      planning: directModels.planning ?? DEFAULT_LOCAL_CONFIG.models.planning,
+      coding: directModels.coding ?? DEFAULT_LOCAL_CONFIG.models.coding,
+      review: directModels.review ?? DEFAULT_LOCAL_CONFIG.models.review,
+      research: directModels.research ?? DEFAULT_LOCAL_CONFIG.models.research,
+    };
+  }
+
   const agents = raw.agents as Record<string, { model?: string }> | undefined;
   if (agents) {
     result.models = {
@@ -945,29 +972,41 @@ export function useAgentConfiguration({
   }, [pushToWorker, workspaceId]);
 
   const toggleTool = useCallback(async (toolSlug: string, enabled: boolean) => {
+    let nextToolSlugs: string[] = [];
+
     setState((prev) => {
       const next = new Set(prev.localConfig.enabledToolSlugs);
       if (enabled) next.add(toolSlug);
       else next.delete(toolSlug);
+      nextToolSlugs = Array.from(next);
       return {
         ...prev,
         localConfig: { ...prev.localConfig, enabledToolSlugs: next },
       };
     });
-  }, []);
+    await pushToWorker({ enabledToolSlugs: nextToolSlugs });
+  }, [pushToWorker]);
 
   const updateToolAgents = useCallback((toolSlug: string, assigned: number, simultaneous: number) => {
-    setState((prev) => ({
-      ...prev,
-      localConfig: {
-        ...prev.localConfig,
-        toolAgents: {
-          ...prev.localConfig.toolAgents,
-          [toolSlug]: { assigned, simultaneous },
+    let nextToolAgents: Record<string, { assigned: number; simultaneous: number }> = {};
+
+    setState((prev) => {
+      nextToolAgents = {
+        ...prev.localConfig.toolAgents,
+        [toolSlug]: { assigned, simultaneous },
+      };
+
+      return {
+        ...prev,
+        localConfig: {
+          ...prev.localConfig,
+          toolAgents: nextToolAgents,
         },
-      },
-    }));
-  }, []);
+      };
+    });
+
+    void pushToWorker({ toolAgents: nextToolAgents });
+  }, [pushToWorker]);
 
   // ─── Schedule entry mutations ──────────────────────────────────
 

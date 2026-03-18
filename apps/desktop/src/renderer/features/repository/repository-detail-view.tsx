@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GitBranch,
-  Target,
   Cpu,
   ExternalLink,
   RefreshCw,
@@ -10,13 +9,18 @@ import {
   LayoutGrid,
   ListChecks,
   FileCode2,
+  Play,
+  Sparkles,
 } from "lucide-react";
 import { useRepositoryDetail } from "./hooks/use-repository-detail";
 import { AgentConfig } from "./components/agent-config";
 import { useMissions } from "./hooks/use-missions";
 import { NodeCommandCenter } from "./components/node-command-center";
-import { desktopBridge } from "@/shared/api/desktop-bridge";
-import { Dropdown } from "@/shared/components/ui/dropdown";
+import { AutonomousRunPanel } from "./components/autonomous-run-panel";
+import { IntelligenceLog } from "./components/intelligence-log";
+import { useAutonomousRuntime } from "./hooks/use-autonomous-runtime";
+import { desktopBridge } from "../../shared/api/desktop-bridge";
+import { Dropdown } from "../../shared/components/ui/dropdown";
 import type { GitHubBranch } from "../../../shared/github-types";
 
 interface RepositoryDetailViewProps {
@@ -24,24 +28,41 @@ interface RepositoryDetailViewProps {
   onBack: () => void;
 }
 
-type SubTabId = "overview" | "command" | "agents" | "missions";
+type SubTabId =
+  | "overview"
+  | "autonomous"
+  | "command"
+  | "agents"
+  | "missions";
 
 export const RepositoryDetailView: React.FC<RepositoryDetailViewProps> = ({
   repoId,
   onBack,
 }) => {
   const { repo, loading, error, refetch } = useRepositoryDetail(repoId);
-  const [activeSubTab, setActiveSubTab] = useState<SubTabId>("command");
+  const [activeSubTab, setActiveSubTab] = useState<SubTabId>("autonomous");
   const [selectedBranch, setSelectedBranch] = useState("");
   const [branches, setBranches] = useState<GitHubBranch[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [branchError, setBranchError] = useState<string | null>(null);
+  const [selectedLocalPath, setSelectedLocalPath] = useState<string | null>(null);
+  const autonomousRuntime = useAutonomousRuntime({
+    repoFullName: repo?.fullName,
+    repoBranch: selectedBranch || repo?.branch,
+    repoProvider: repo?.provider,
+    repoUrl: repo?.url,
+    localPath: selectedLocalPath ?? repo?.localPath,
+  });
 
   useEffect(() => {
     if (repo?.branch) {
       setSelectedBranch(repo.branch);
     }
   }, [repo?.branch, repo?.id]);
+
+  useEffect(() => {
+    setSelectedLocalPath(repo?.localPath ?? null);
+  }, [repo?.id, repo?.localPath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +135,25 @@ export const RepositoryDetailView: React.FC<RepositoryDetailViewProps> = ({
   if (error) return <ErrorState message={error} onBack={onBack} />;
   if (!repo) return null;
 
+  const runButtonLabel = autonomousRuntime.snapshot.state.running
+    ? "En ejecucion"
+    : autonomousRuntime.loading
+      ? "Conectando"
+      : "Iniciar ahora";
+
+  const handleRunNow = async () => {
+    setActiveSubTab("autonomous");
+    await autonomousRuntime.runNow();
+  };
+
+  const handlePickRepositorySource = async () => {
+    const pickedPath = await desktopBridge.pickRepositoryDirectory();
+    if (pickedPath) {
+      setSelectedLocalPath(pickedPath);
+      setActiveSubTab("autonomous");
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12">
       <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -151,19 +191,19 @@ export const RepositoryDetailView: React.FC<RepositoryDetailViewProps> = ({
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <div className="relative min-w-[220px]">
-                  <GitBranch className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-primary" />
-                  <Dropdown
-                    value={selectedBranch || repo.branch}
-                    onChange={setSelectedBranch}
-                    options={branchOptions.map((branchName) => ({
-                      value: branchName,
-                      label: branchName,
-                    }))}
-                    placeholder="Selecciona rama"
-                    disabled={branchesLoading || branchOptions.length === 0}
-                    className="w-full"
-                  />
-                </div>
+                   <Dropdown
+                     value={selectedBranch || repo.branch}
+                     onChange={setSelectedBranch}
+                     options={branchOptions.map((branchName) => ({
+                       value: branchName,
+                       label: branchName,
+                     }))}
+                     placeholder="Selecciona rama"
+                     disabled={branchesLoading || branchOptions.length === 0}
+                     className="w-full"
+                     icon={<GitBranch className="h-3.5 w-3.5 text-primary" />}
+                   />
+                 </div>
 
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                   {branchesLoading
@@ -182,25 +222,47 @@ export const RepositoryDetailView: React.FC<RepositoryDetailViewProps> = ({
                   {branchError}
                 </p>
               )}
+              <p className="mt-2 text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+                Fuente local: {selectedLocalPath ?? repo.localPath ?? "Sin carpeta vinculada"}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all hover:border-primary/50">
-            <ExternalLink className="w-3.5 h-3.5" />
-            Repositorio fuente
-          </button>
+        <div className="flex flex-col items-stretch gap-3">
           <button
-            onClick={() => refetch()}
-            className="rounded-xl border border-border bg-card p-2 text-muted-foreground transition-all hover:border-primary/50 hover:text-primary"
+            onClick={() => void handleRunNow()}
+            disabled={autonomousRuntime.loading || autonomousRuntime.snapshot.state.running}
+            className="flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary transition-all hover:border-primary/50 hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <RefreshCw className="w-4 h-4" />
+            <Play className="w-3.5 h-3.5" />
+            {runButtonLabel}
           </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => void handlePickRepositorySource()}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all hover:border-primary/50"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Repositorio fuente
+            </button>
+            <button
+              onClick={() => refetch()}
+              className="rounded-xl border border-border bg-card p-2 text-muted-foreground transition-all hover:border-primary/50 hover:text-primary"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="flex w-fit items-center gap-1 rounded-2xl border border-border/50 bg-muted/30 p-1">
+        <TabButton
+          active={activeSubTab === "autonomous"}
+          onClick={() => setActiveSubTab("autonomous")}
+          icon={<Sparkles className="w-3.5 h-3.5" />}
+          label="Ejecucion autonoma"
+        />
         <TabButton
           active={activeSubTab === "overview"}
           onClick={() => setActiveSubTab("overview")}
@@ -237,6 +299,19 @@ export const RepositoryDetailView: React.FC<RepositoryDetailViewProps> = ({
           className="min-h-[400px]"
         >
           {activeSubTab === "overview" && <OverviewTab repo={repo} />}
+          {activeSubTab === "autonomous" && (
+            <AutonomousRunPanel
+              snapshot={autonomousRuntime.snapshot}
+              loading={autonomousRuntime.loading}
+              error={autonomousRuntime.error}
+              onRunNow={async () => {
+                await autonomousRuntime.runNow();
+              }}
+              onAbortRun={async () => {
+                await autonomousRuntime.abortRun();
+              }}
+            />
+          )}
           {activeSubTab === "command" && (
             <NodeCommandCenter
               repoFullName={repo.fullName}
@@ -252,7 +327,12 @@ export const RepositoryDetailView: React.FC<RepositoryDetailViewProps> = ({
               repoFullName={repo.fullName}
             />
           )}
-          {activeSubTab === "missions" && <MissionsTab repoId={repoId} />}
+          {activeSubTab === "missions" && (
+            <MissionsTab
+              repoId={repoId}
+              snapshot={autonomousRuntime.snapshot}
+            />
+          )}
         </motion.div>
       </AnimatePresence>
     </div>
@@ -321,75 +401,21 @@ function OverviewTab({ repo }: { repo: any }) {
   );
 }
 
-function MissionsTab({ repoId }: { repoId: string }) {
+function MissionsTab({
+  repoId,
+  snapshot,
+}: {
+  repoId: string;
+  snapshot: ReturnType<typeof useAutonomousRuntime>["snapshot"];
+}) {
   const { missions, loading } = useMissions(repoId);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-primary opacity-20" />
-      </div>
-    );
-  }
-
-  if (missions.length === 0) {
-    return (
-      <div className="rounded-3xl border border-border/50 bg-card/50 p-10 text-center">
-        <Target className="mx-auto mb-4 w-10 h-10 text-muted-foreground opacity-30" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-          Aun no hay misiones registradas
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      {missions.map((mission) => (
-        <motion.div
-          key={mission.id}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="group flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/30"
-        >
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg border border-border bg-background p-2 text-primary">
-              <Target className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-[11px] font-black uppercase tracking-tight text-foreground">
-                {mission.title}
-              </h4>
-              <p className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground">
-                {mission.objective} - {formatShortDate(mission.createdAt)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="hidden text-right sm:block">
-              <p className="mb-1 text-[8px] font-black uppercase leading-none tracking-widest text-muted-foreground">
-                Costo
-              </p>
-              <p className="text-[10px] font-bold text-foreground">
-                {mission.actualCostUsd ? `${mission.actualCostUsd} AU` : "..."}
-              </p>
-            </div>
-            <div
-              className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-widest ${
-                mission.status === "completed"
-                  ? "border-emerald-500/10 bg-emerald-500/5 text-emerald-400"
-                  : mission.status === "blocked"
-                    ? "border-red-500/10 bg-red-500/5 text-red-400"
-                    : "border-blue-500/10 bg-blue-500/5 text-blue-400"
-              }`}
-            >
-              {formatMissionStatus(mission.status)}
-            </div>
-          </div>
-        </motion.div>
-      ))}
-    </div>
+    <IntelligenceLog
+      snapshot={snapshot}
+      missions={missions}
+      missionsLoading={loading}
+    />
   );
 }
 
@@ -516,35 +542,4 @@ function formatSyncState(value: string): string {
     default:
       return value;
   }
-}
-
-function formatMissionStatus(value: string): string {
-  switch (value) {
-    case "discovered":
-      return "Descubierta";
-    case "analyzing":
-      return "Analizando";
-    case "researching":
-      return "Investigando";
-    case "executing":
-      return "Ejecutando";
-    case "validating":
-      return "Validando";
-    case "review":
-      return "Revision";
-    case "blocked":
-      return "Bloqueada";
-    case "completed":
-      return "Completada";
-    default:
-      return value;
-  }
-}
-
-function formatShortDate(value: string): string {
-  return new Date(value).toLocaleDateString("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }

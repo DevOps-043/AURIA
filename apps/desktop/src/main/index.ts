@@ -3,9 +3,11 @@ import { join } from "node:path";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { createDemoWorkspaceSnapshot } from "@auria/domain";
 import { runtimeHealthSchema } from "@auria/contracts";
+import { AUTODEV_RUNTIME_CHANNEL } from "../shared/autodev-types";
 import { registerGitHubHandlers } from "./github-handlers";
 import { createTray, destroyTray } from "./tray-manager";
 import { getAutoLaunchEnabled, setAutoLaunchEnabled, wasLaunchedHidden } from "./auto-launch-manager";
+import { AutodevRuntimeManager } from "./autodev-runtime";
 
 const isDev = Boolean(process.env.ELECTRON_RENDERER_URL);
 if (isDev) {
@@ -22,6 +24,11 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let workspaceSnapshot = createDemoWorkspaceSnapshot();
 const RENDERER_LOAD_RETRY_MS = [150, 300, 600, 1_200, 2_000];
+const autodevRuntime = new AutodevRuntimeManager((snapshot) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(AUTODEV_RUNTIME_CHANNEL, snapshot);
+  }
+});
 
 // ─── Deep Link Protocol (OAuth callback) ────────────────────────────
 // Register 'auria' as a custom protocol so GitHub OAuth can redirect
@@ -203,6 +210,8 @@ const secureStore = {
   },
 };
 
+autodevRuntime.setSecretResolver((key: string) => secureStore.getItem(key));
+
 const getPreloadPath = () => join(__dirname, "../preload/index.cjs");
 
 const wait = (ms: number) =>
@@ -355,10 +364,6 @@ const createMainWindow = async () => {
 };
 
 // ─── Worker state (demo mode) ─────────────────────────────────────
-let workerRunning = false;
-let workerCurrentPhase: string | null = null;
-let workerCurrentRunId: string | null = null;
-
 const registerIpcHandlers = () => {
   // ─── Secure Storage IPC (encrypted token persistence) ───────────
   ipcMain.handle("secureStorage:getItem", (_e, key: string) =>
@@ -439,34 +444,37 @@ const registerIpcHandlers = () => {
 
   // ─── Worker IPC Handlers (demo mode) ───────────────────────────
 
-  ipcMain.handle("worker:runNow", async () => {
-    if (workerRunning) {
-      return { success: false, error: "A run is already in progress." };
-    }
-    workerRunning = true;
-    workerCurrentRunId = `demo_${Date.now()}`;
-    workerCurrentPhase = "strategic-awareness";
-    // In production, this would trigger the local-worker process
-    return { success: true, runId: workerCurrentRunId };
-  });
+  ipcMain.handle("autodev:get-config", async () => ({
+    config: autodevRuntime.getSnapshot().config,
+  }));
 
-  ipcMain.handle("worker:abort", async () => {
-    workerRunning = false;
-    workerCurrentPhase = null;
-    workerCurrentRunId = null;
+  ipcMain.handle("autodev:update-config", async (_e, updates: Record<string, unknown>) => ({
+    config: autodevRuntime.updateConfig(updates).config,
+  }));
+
+  ipcMain.handle("autodev:get-runtime", async () => autodevRuntime.getSnapshot());
+
+  ipcMain.handle("autodev:set-context", async (_e, context: Record<string, unknown>) => {
+    autodevRuntime.setContext(context);
     return { success: true };
   });
 
-  ipcMain.handle("worker:getStatus", async () => ({
-    running: workerRunning,
-    currentPhase: workerCurrentPhase,
-    currentRunId: workerCurrentRunId,
-  }));
+  ipcMain.handle("autodev:run-now", async (_e, request: Record<string, unknown> | undefined) =>
+    autodevRuntime.startRun(request),
+  );
 
-  ipcMain.handle("worker:getHistory", async () => []);
+  ipcMain.handle("autodev:abort-run", async () => autodevRuntime.abortRun());
 
-  ipcMain.handle("worker:updateConfig", async (_e, _config) => {
-    // In production, this would update worker config in Supabase
+  ipcMain.handle("worker:runNow", async () => autodevRuntime.startRun());
+
+  ipcMain.handle("worker:abort", async () => autodevRuntime.abortRun());
+
+  ipcMain.handle("worker:getStatus", async () => autodevRuntime.getStatus());
+
+  ipcMain.handle("worker:getHistory", async () => autodevRuntime.getLegacyHistory());
+
+  ipcMain.handle("worker:updateConfig", async (_e, config) => {
+    autodevRuntime.updateConfig(config);
     return { success: true };
   });
 
@@ -591,4 +599,5 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   isQuitting = true;
   destroyTray();
+  autodevRuntime.dispose();
 });

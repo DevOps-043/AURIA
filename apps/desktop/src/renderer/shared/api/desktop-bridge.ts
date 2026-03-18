@@ -7,6 +7,11 @@ import {
   type WorkspaceSnapshot,
 } from "@auria/contracts";
 import { createDemoWorkspaceSnapshot } from "@auria/domain";
+import {
+  createAutodevRuntimeSnapshot,
+  type AutodevRunRequest,
+  type AutodevRuntimeSnapshot,
+} from "../../../shared/autodev-types";
 import type {
   GitHubBranch,
   GitHubCompareResult,
@@ -19,7 +24,9 @@ import type {
 } from "../../../shared/github-types";
 
 const fallbackSnapshot = createDemoWorkspaceSnapshot();
+const fallbackAutodevSnapshot = createAutodevRuntimeSnapshot();
 const PRELOAD_REFRESH_KEY = "auria-preload-refresh-github-bridge";
+const AUTODEV_REFRESH_KEY = "auria-preload-refresh-autodev-bridge";
 
 const fallbackHealth: RuntimeHealth = runtimeHealthSchema.parse({
   appVersion: "0.1.0",
@@ -64,6 +71,42 @@ function ensureGitHubBridgeMethod(
 
   throw new Error(
     `El puente de escritorio esta desactualizado. Reinicia la sesion de desarrollo de Electron para cargar github:${String(methodName)}.`,
+  );
+}
+
+function ensureAuriaBridgeMethod(
+  methodName: keyof NonNullable<typeof window.auria>,
+): boolean {
+  if (!window.auria) {
+    throw new Error("La ejecucion autonoma solo esta disponible en la app de escritorio.");
+  }
+
+  if (typeof window.auria[methodName] === "function") {
+    try {
+      window.sessionStorage.removeItem(AUTODEV_REFRESH_KEY);
+    } catch {
+      // Ignore sessionStorage failures in restricted contexts.
+    }
+    return true;
+  }
+
+  const isDev = Boolean(import.meta.env.DEV);
+
+  if (isDev) {
+    try {
+      const hasRefreshed = window.sessionStorage.getItem(AUTODEV_REFRESH_KEY) === "1";
+      if (!hasRefreshed) {
+        window.sessionStorage.setItem(AUTODEV_REFRESH_KEY, "1");
+        window.location.reload();
+        throw new Error("Recargando la interfaz para cargar el puente autonomo actualizado...");
+      }
+    } catch {
+      // Fall through to the persistent error below.
+    }
+  }
+
+  throw new Error(
+    `El puente de escritorio esta desactualizado. Reinicia la sesion de Electron para cargar ${String(methodName)}.`,
   );
 }
 
@@ -515,15 +558,104 @@ export const desktopBridge = {
   },
 
   autodevUpdateConfig: async (updates: Record<string, unknown>): Promise<Record<string, unknown>> => {
-    if (window.auria?.autodevUpdateConfig) {
-      try {
-        const result = await window.auria.autodevUpdateConfig(updates);
-        return result.config ?? {};
-      } catch {
-        return {};
-      }
+    ensureAuriaBridgeMethod("autodevUpdateConfig");
+    const auria = window.auria;
+    if (!auria) {
+      throw new Error("La ejecucion autonoma solo esta disponible en la app de escritorio.");
     }
-    return {};
+    try {
+      const result = await auria.autodevUpdateConfig(updates);
+      return result.config ?? {};
+    } catch (err) {
+      if (isMissingIpcHandlerError(err)) {
+        throw new Error("No existe el handler principal para actualizar la configuracion autonoma. Reinicia Electron.");
+      }
+      throw err;
+    }
+  },
+  autodevGetRuntime: async (): Promise<AutodevRuntimeSnapshot> => {
+    if (!window.auria) {
+      return fallbackAutodevSnapshot;
+    }
+
+    ensureAuriaBridgeMethod("autodevGetRuntime");
+    const auria = window.auria;
+    if (!auria) {
+      return fallbackAutodevSnapshot;
+    }
+    try {
+      return await auria.autodevGetRuntime();
+    } catch (err) {
+      if (isMissingIpcHandlerError(err)) {
+        throw new Error("No existe el handler principal para consultar el runtime autonomo. Reinicia Electron.");
+      }
+      throw err;
+    }
+  },
+  autodevSetContext: async (context: AutodevRunRequest): Promise<boolean> => {
+    if (!window.auria) {
+      return true;
+    }
+
+    ensureAuriaBridgeMethod("autodevSetContext");
+    const auria = window.auria;
+    if (!auria) {
+      return true;
+    }
+    try {
+      return (await auria.autodevSetContext(context))?.success ?? true;
+    } catch (err) {
+      if (isMissingIpcHandlerError(err)) {
+        throw new Error("No existe el handler principal para preparar el contexto autonomo. Reinicia Electron.");
+      }
+      throw err;
+    }
+  },
+  autodevRunNow: async (
+    request?: AutodevRunRequest,
+  ): Promise<{ success: boolean; runId?: string; error?: string }> => {
+    ensureAuriaBridgeMethod("autodevRunNow");
+    const auria = window.auria;
+    if (!auria) {
+      throw new Error("La ejecucion autonoma solo esta disponible en la app de escritorio.");
+    }
+    try {
+      return await auria.autodevRunNow(request);
+    } catch (err) {
+      if (isMissingIpcHandlerError(err)) {
+        throw new Error("No existe el handler principal para iniciar el flujo autonomo. Reinicia Electron.");
+      }
+      throw err;
+    }
+  },
+  autodevAbortRun: async (): Promise<{ success: boolean }> => {
+    ensureAuriaBridgeMethod("autodevAbortRun");
+    const auria = window.auria;
+    if (!auria) {
+      throw new Error("La ejecucion autonoma solo esta disponible en la app de escritorio.");
+    }
+    try {
+      return await auria.autodevAbortRun();
+    } catch (err) {
+      if (isMissingIpcHandlerError(err)) {
+        throw new Error("No existe el handler principal para abortar el flujo autonomo. Reinicia Electron.");
+      }
+      throw err;
+    }
+  },
+  onAutodevRuntimeUpdate: (
+    callback: (snapshot: AutodevRuntimeSnapshot) => void,
+  ): (() => void) => {
+    if (!window.auria) {
+      return () => undefined;
+    }
+
+    ensureAuriaBridgeMethod("onAutodevRuntimeUpdate");
+    const auria = window.auria;
+    if (!auria) {
+      return () => undefined;
+    }
+    return auria.onAutodevRuntimeUpdate(callback);
   },
 
   // ─── App Settings (auto-launch / background) ─────────────────

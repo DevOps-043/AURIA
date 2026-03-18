@@ -215,9 +215,6 @@ export const SelectField: React.FC<SelectFieldProps> = ({
           focused ? "border-[#3B82F6] ring-2 ring-[#3B82F6]/10" : "border-[#263042]"
         )}
       >
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7C8798] pointer-events-none z-20">
-          {icon}
-        </div>
         <Dropdown
           value={value}
           onChange={onChange}
@@ -225,6 +222,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
           placeholder={placeholder}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          icon={icon}
         />
       </div>
     </motion.div>
