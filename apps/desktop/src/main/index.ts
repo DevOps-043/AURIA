@@ -8,6 +8,8 @@ import { registerGitHubHandlers } from "./github-handlers";
 import { createTray, destroyTray } from "./tray-manager";
 import { getAutoLaunchEnabled, setAutoLaunchEnabled, wasLaunchedHidden } from "./auto-launch-manager";
 import { AutodevRuntimeManager } from "./autodev-runtime";
+import { UpdaterService } from "./updater-service";
+import { registerUpdaterHandlers } from "./updater-handlers";
 
 const isDev = Boolean(process.env.ELECTRON_RENDERER_URL);
 if (isDev) {
@@ -24,6 +26,7 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let workspaceSnapshot = createDemoWorkspaceSnapshot();
 const RENDERER_LOAD_RETRY_MS = [150, 300, 600, 1_200, 2_000];
+const updaterService = new UpdaterService();
 const autodevRuntime = new AutodevRuntimeManager((snapshot) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(AUTODEV_RUNTIME_CHANNEL, snapshot);
@@ -564,7 +567,9 @@ app.whenReady()
 
     registerIpcHandlers();
     registerGitHubHandlers(secureStore);
+    registerUpdaterHandlers(updaterService, () => mainWindow);
     await createMainWindow();
+    updaterService.init();
 
     // Initialize system tray after the main window is created
     if (mainWindow) {
@@ -599,5 +604,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   isQuitting = true;
   destroyTray();
+  updaterService.stop();
   autodevRuntime.dispose();
 });

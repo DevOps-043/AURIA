@@ -138,6 +138,43 @@ const auriaBridge = {
     ipcRenderer.invoke("app:getAutoLaunch") as Promise<boolean>,
   setAutoLaunchEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("app:setAutoLaunch", enabled) as Promise<boolean>,
+
+  // ─── Auto-Updater ───────────────────────────────────────────────
+  updater: {
+    checkForUpdates: () =>
+      ipcRenderer.invoke("updater:check-for-updates") as Promise<{ success: boolean; error?: string }>,
+    downloadUpdate: () =>
+      ipcRenderer.invoke("updater:download-update") as Promise<{ success: boolean; error?: string }>,
+    installUpdate: () =>
+      ipcRenderer.invoke("updater:install-update") as Promise<{ success: boolean; error?: string }>,
+    getStatus: () =>
+      ipcRenderer.invoke("updater:get-status") as Promise<{
+        state: string;
+        currentVersion: string;
+        availableVersion: string | null;
+        releaseNotes: string | null;
+        downloadProgress: number | null;
+        error: string | null;
+      }>,
+    onUpdateAvailable: (cb: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => {
+      ipcRenderer.on("updater:update-available", (_e, data) => cb(data));
+    },
+    onDownloadProgress: (cb: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => {
+      ipcRenderer.on("updater:download-progress", (_e, data) => cb(data));
+    },
+    onUpdateDownloaded: (cb: (info: { version: string; releaseNotes: string | null }) => void) => {
+      ipcRenderer.on("updater:update-downloaded", (_e, data) => cb(data));
+    },
+    onError: (cb: (err: { message: string }) => void) => {
+      ipcRenderer.on("updater:error", (_e, data) => cb(data));
+    },
+    removeListeners: () => {
+      ipcRenderer.removeAllListeners("updater:update-available");
+      ipcRenderer.removeAllListeners("updater:download-progress");
+      ipcRenderer.removeAllListeners("updater:update-downloaded");
+      ipcRenderer.removeAllListeners("updater:error");
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld("auria", auriaBridge);

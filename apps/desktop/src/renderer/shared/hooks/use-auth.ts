@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/shared/api/supabase-client';
+import { syncGeminiKeyToSecureStorage } from '@/shared/services/credentials-sync';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -94,6 +95,8 @@ export function useAuth() {
 
         if (expiresAt > now) {
           setState({ status: 'authenticated', user: session.user, session, oauthError: null });
+            // Sync Gemini API key on app startup when session is valid
+            syncGeminiKeyToSecureStorage();
         } else {
           // Token expired — attempt refresh
           supabase!.auth.refreshSession().then(({ data: { session: refreshed } }) => {
@@ -118,6 +121,8 @@ export function useAuth() {
           case 'SIGNED_IN':
             // Capture GitHub provider token on OAuth sign-in
             await persistGitHubProviderToken(session);
+            // Sync Gemini API key from Supabase to secure storage
+            syncGeminiKeyToSecureStorage();
             setState({
               status: 'authenticated',
               user: session?.user ?? null,
@@ -137,10 +142,11 @@ export function useAuth() {
             break;
 
           case 'SIGNED_OUT':
-            // Clean up GitHub tokens on sign out
+            // Clean up tokens on sign out
             if (window.auria) {
               await window.auria.secureStorageRemoveItem('auria-github-token');
               await window.auria.secureStorageRemoveItem('auria-github-refresh-token');
+              await window.auria.secureStorageRemoveItem('auria-gemini-api-key');
             }
             setState({ status: 'unauthenticated', user: null, session: null, oauthError: null });
             break;

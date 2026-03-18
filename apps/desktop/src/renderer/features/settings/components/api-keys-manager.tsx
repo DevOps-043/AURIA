@@ -33,22 +33,14 @@ interface ApiKeyEntry {
 }
 
 const PROVIDER_OPTIONS = [
-  { value: "vertex_ai", label: "Vertex AI (Gemini + Claude + Mistral + GPT)" },
   { value: "gemini", label: "Google Gemini (API directa)" },
-  { value: "anthropic", label: "Anthropic (Claude)" },
-  { value: "mistral", label: "Mistral AI" },
-  { value: "openai", label: "OpenAI" },
   { value: "ollama", label: "Ollama (local)" },
   { value: "lm_studio", label: "LM Studio (local)" },
   { value: "custom", label: "Proveedor personalizado" },
 ];
 
 const PROVIDER_META: Record<string, { icon: React.ReactNode; accent: string; description: string }> = {
-  vertex_ai: { icon: <Cloud className="h-4 w-4" />, accent: "text-blue-400 border-blue-500/20 bg-blue-500/10", description: "Acceso a Gemini, Claude, Mistral y GPT via Google Cloud" },
   gemini: { icon: <Cloud className="h-4 w-4" />, accent: "text-cyan-400 border-cyan-500/20 bg-cyan-500/10", description: "API directa de Google Gemini" },
-  anthropic: { icon: <Cloud className="h-4 w-4" />, accent: "text-orange-400 border-orange-500/20 bg-orange-500/10", description: "Claude Opus, Sonnet y Haiku" },
-  mistral: { icon: <Cloud className="h-4 w-4" />, accent: "text-violet-400 border-violet-500/20 bg-violet-500/10", description: "Mistral Large, Medium, Codestral" },
-  openai: { icon: <Cloud className="h-4 w-4" />, accent: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10", description: "GPT-4o, GPT-4 Turbo" },
   ollama: { icon: <Server className="h-4 w-4" />, accent: "text-lime-400 border-lime-500/20 bg-lime-500/10", description: "Modelos locales via Ollama" },
   lm_studio: { icon: <Server className="h-4 w-4" />, accent: "text-amber-400 border-amber-500/20 bg-amber-500/10", description: "Modelos locales via LM Studio" },
   custom: { icon: <Key className="h-4 w-4" />, accent: "text-fuchsia-400 border-fuchsia-500/20 bg-fuchsia-500/10", description: "Endpoint personalizado compatible con OpenAI" },

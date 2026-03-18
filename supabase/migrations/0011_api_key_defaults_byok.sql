@@ -2,7 +2,7 @@
 -- ║  Migration 0011 — API Key Defaults + BYOK System                  ║
 -- ║                                                                    ║
 -- ║  1. Tabla platform_default_keys: keys de AQELOR por defecto       ║
--- ║  2. Amplía api_keys: soporte Ollama, LM Studio, Vertex AI         ║
+-- ║  2. Amplía api_keys: soporte Gemini, Ollama, LM Studio            ║
 -- ║  3. Límite de 3 keys por usuario                                  ║
 -- ║  4. RPC resolve_model_credentials: devuelve key activa            ║
 -- ║     (usuario > plataforma)                                        ║
@@ -15,7 +15,7 @@
 create table if not exists public.platform_default_keys (
   id            uuid primary key default gen_random_uuid(),
   provider      text not null unique check (provider in (
-    'vertex_ai', 'gemini', 'anthropic', 'mistral', 'openai', 'custom'
+    'gemini', 'ollama', 'lm_studio', 'custom'
   )),
   encrypted_key text not null,
   config        jsonb not null default '{}'::jsonb,
@@ -28,7 +28,7 @@ comment on table public.platform_default_keys is
   'API keys de AQELOR usadas por defecto para todos los usuarios. Solo admins pueden modificar.';
 
 comment on column public.platform_default_keys.config is
-  'Configuración extra del proveedor, ej: {"project_id": "...", "location": "us-central1"} para Vertex AI.';
+  'Configuración extra del proveedor, ej: {"base_url": "..."} para modelos locales.';
 
 create trigger trg_platform_default_keys_updated_at
   before update on public.platform_default_keys
@@ -45,11 +45,10 @@ alter table public.platform_default_keys enable row level security;
 alter table public.api_keys drop constraint if exists api_keys_provider_check;
 alter table public.api_keys add constraint api_keys_provider_check
   check (provider in (
-    'vertex_ai', 'gemini', 'anthropic', 'mistral', 'openai',
-    'ollama', 'lm_studio', 'github', 'custom'
+    'gemini', 'ollama', 'lm_studio', 'github', 'custom'
   ));
 
--- Configuración extra (base_url para Ollama/LM Studio, project_id para Vertex)
+-- Configuración extra (base_url para Ollama/LM Studio)
 alter table public.api_keys
   add column if not exists config jsonb not null default '{}'::jsonb;
 
@@ -58,7 +57,7 @@ alter table public.api_keys
   add column if not exists priority integer not null default 0;
 
 comment on column public.api_keys.config is
-  'Configuración extra: {"base_url": "http://localhost:11434"} para Ollama, {"project_id": "...", "location": "..."} para Vertex AI.';
+  'Configuración extra: {"base_url": "http://localhost:11434"} para Ollama, {"base_url": "http://localhost:1234"} para LM Studio.';
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- 3. Función para validar límite de 3 keys por usuario
@@ -293,15 +292,20 @@ $$;
 grant execute on function public.delete_user_api_key(uuid) to authenticated;
 
 -- ═══════════════════════════════════════════════════════════════════════
--- 8. Seed: Insertar key por defecto de Vertex AI (placeholder)
---    El admin debe actualizar encrypted_key con las credenciales reales
+-- 8. Seed: Insertar key por defecto de Gemini (API key de la plataforma)
+--    Esta key se usa para TODOS los usuarios que no configuren su propia.
+--    IMPORTANTE: Reemplaza TU_GEMINI_API_KEY_AQUI con tu API key real.
 -- ═══════════════════════════════════════════════════════════════════════
 
 insert into public.platform_default_keys (provider, encrypted_key, config, is_active)
 values (
-  'vertex_ai',
-  'PLACEHOLDER_VERTEX_SERVICE_ACCOUNT_KEY',
-  '{"project_id": "", "location": "us-central1"}'::jsonb,
-  false  -- Desactivado hasta que el admin configure las credenciales reales
+  'gemini',
+  'TU_GEMINI_API_KEY_AQUI',
+  '{}'::jsonb,
+  true  -- Activa por defecto: todos los usuarios usan esta key
 )
-on conflict (provider) do nothing;
+on conflict (provider) do update set
+  encrypted_key = excluded.encrypted_key,
+  config = excluded.config,
+  is_active = excluded.is_active,
+  updated_at = now();

@@ -76,23 +76,11 @@ const INTERACTIVE_TOOLS: Array<{
 ];
 
 const AVAILABLE_MODELS = [
-  // Gemini (Vertex AI / API directa)
+  // Gemini (API directa)
   { value: "gemini-3.1-pro-preview-customtools", label: "Gemini 3.1 Pro" },
   { value: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
   { value: "gemini-2.5-pro-preview-05-06", label: "Gemini 2.5 Pro" },
   { value: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash" },
-  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-  // Anthropic (Vertex AI Model Garden)
-  { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
-  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-  // Mistral (Vertex AI Model Garden)
-  { value: "mistral-large-latest", label: "Mistral Large" },
-  { value: "mistral-medium-latest", label: "Mistral Medium" },
-  { value: "codestral-latest", label: "Codestral" },
-  { value: "mistral-small-latest", label: "Mistral Small" },
-  // GPT (Vertex AI Model Garden)
-  { value: "gpt-oss-120b", label: "GPT OSS 120B" },
   // Locales (Ollama / LM Studio)
   { value: "ollama/llama3.3:70b", label: "Llama 3.3 70B (Ollama)" },
   { value: "ollama/qwen3:32b", label: "Qwen 3 32B (Ollama)" },

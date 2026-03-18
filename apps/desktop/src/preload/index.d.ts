@@ -86,6 +86,26 @@ export type AuriaBridge = {
   // App Settings (auto-launch / background)
   getAutoLaunchEnabled: () => Promise<boolean>;
   setAutoLaunchEnabled: (enabled: boolean) => Promise<boolean>;
+
+  // Auto-Updater
+  updater: {
+    checkForUpdates: () => Promise<{ success: boolean; error?: string }>;
+    downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
+    installUpdate: () => Promise<{ success: boolean; error?: string }>;
+    getStatus: () => Promise<{
+      state: string;
+      currentVersion: string;
+      availableVersion: string | null;
+      releaseNotes: string | null;
+      downloadProgress: number | null;
+      error: string | null;
+    }>;
+    onUpdateAvailable: (cb: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => void;
+    onDownloadProgress: (cb: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => void;
+    onUpdateDownloaded: (cb: (info: { version: string; releaseNotes: string | null }) => void) => void;
+    onError: (cb: (err: { message: string }) => void) => void;
+    removeListeners: () => void;
+  };
 };
 
 declare global {

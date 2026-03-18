@@ -7,6 +7,7 @@ import {
   Bell,
   Link2,
   CreditCard,
+  Download,
   Fingerprint,
   Key,
   Monitor,
@@ -17,8 +18,9 @@ import { SecurityForm } from './components/security-form';
 import { BillingConsole } from './components/billing-console';
 import { ApiKeysManager } from './components/api-keys-manager';
 import { GeneralSettings } from './components/general-settings';
+import { UpdatePanel } from './components/update-panel';
 
-type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'notifications' | 'privacy' | 'billing';
+type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'notifications' | 'privacy' | 'billing' | 'updates';
 
 export const SettingsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -81,11 +83,17 @@ export const SettingsView: React.FC = () => {
               icon={<Shield className="w-4 h-4" />}
               label="Privacidad y control"
             />
-            <TabButton 
-              active={activeTab === 'billing'} 
+            <TabButton
+              active={activeTab === 'billing'}
               onClick={() => setActiveTab('billing')}
               icon={<CreditCard className="w-4 h-4" />}
               label="Facturacion y uso"
+            />
+            <TabButton
+              active={activeTab === 'updates'}
+              onClick={() => setActiveTab('updates')}
+              icon={<Download className="w-4 h-4" />}
+              label="Actualizaciones"
             />
           </div>
         </div>
@@ -184,12 +192,23 @@ export const SettingsView: React.FC = () => {
 
               {activeTab === 'billing' && (
                 <section className="space-y-8 md:space-y-10 min-w-0">
-                  <SectionHeader 
-                    title="Facturacion y uso" 
+                  <SectionHeader
+                    title="Facturacion y uso"
                     subtitle="Suscripciones, cartera AU, paquetes y estado del proveedor"
                     icon={<CreditCard className="w-5 h-5" />}
                   />
                   <BillingConsole />
+                </section>
+              )}
+
+              {activeTab === 'updates' && (
+                <section className="space-y-8 md:space-y-10 min-w-0">
+                  <SectionHeader
+                    title="Actualizaciones"
+                    subtitle="Manten AQELOR actualizado con las ultimas mejoras y correcciones"
+                    icon={<Download className="w-5 h-5" />}
+                  />
+                  <UpdatePanel />
                 </section>
               )}
             </motion.div>

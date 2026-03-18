@@ -2,6 +2,7 @@ import { lazy, StrictMode, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "./shared/components/error-boundary";
+import { UpdateNotification } from "./shared/components/update-notification";
 import { useAuth } from "./shared/hooks/use-auth";
 import "./shared/styles/index.css";
 
@@ -34,16 +35,22 @@ const App = () => {
 
   if (status === "authenticated") {
     return (
-      <Suspense fallback={<AppBootSplash label="Cargando espacio de trabajo..." />}>
-        <DashboardPage onSignOut={signOut} />
-      </Suspense>
+      <>
+        <Suspense fallback={<AppBootSplash label="Cargando espacio de trabajo..." />}>
+          <DashboardPage onSignOut={signOut} />
+        </Suspense>
+        <UpdateNotification />
+      </>
     );
   }
 
   return (
-    <Suspense fallback={<AppBootSplash label="Cargando autenticacion..." />}>
-      <LoginPage oauthError={oauthError} />
-    </Suspense>
+    <>
+      <Suspense fallback={<AppBootSplash label="Cargando autenticacion..." />}>
+        <LoginPage oauthError={oauthError} />
+      </Suspense>
+      <UpdateNotification />
+    </>
   );
 };
 

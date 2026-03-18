@@ -585,14 +585,33 @@ export function useAgentConfiguration({
 }: UseAgentConfigurationArgs): AgentConfigurationState {
   const [state, setState] = useState<AgentConfigurationState>(INITIAL_STATE);
   const savingRef = useRef(false);
+  const pendingUpdatesRef = useRef<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (!repositoryId || !workspaceId || !supabase) {
-      setState((current) => ({
-        ...current,
-        loading: false,
-        error: "Falta el contexto del repositorio o del espacio de trabajo.",
-      }));
+      // Even without Supabase context, try to load local config so it's not lost
+      const loadLocalOnly = async () => {
+        let localConfig: AutoDevLocalConfig = {
+          ...DEFAULT_LOCAL_CONFIG,
+          enabledToolSlugs: new Set(DEFAULT_LOCAL_CONFIG.enabledToolSlugs),
+        };
+        try {
+          const rawConfig = await desktopBridge.autodevGetConfig();
+          if (rawConfig && typeof rawConfig === "object" && Object.keys(rawConfig).length > 0) {
+            const parsed = parseAutoDevConfig(rawConfig);
+            localConfig = { ...localConfig, ...parsed };
+          }
+        } catch {
+          // Local config unavailable
+        }
+        setState((current) => ({
+          ...current,
+          loading: false,
+          localConfig,
+          error: "Falta el contexto del repositorio o del espacio de trabajo.",
+        }));
+      };
+      void loadLocalOnly();
       return;
     }
 
@@ -601,6 +620,21 @@ export function useAgentConfiguration({
 
     const load = async () => {
       const warnings: string[] = [];
+
+      // Load local config first, independently of Supabase
+      let localConfig: AutoDevLocalConfig = {
+        ...DEFAULT_LOCAL_CONFIG,
+        enabledToolSlugs: new Set(DEFAULT_LOCAL_CONFIG.enabledToolSlugs),
+      };
+      try {
+        const rawConfig = await desktopBridge.autodevGetConfig();
+        if (rawConfig && typeof rawConfig === "object" && Object.keys(rawConfig).length > 0) {
+          const parsed = parseAutoDevConfig(rawConfig);
+          localConfig = { ...localConfig, ...parsed };
+        }
+      } catch {
+        warnings.push("No se pudo obtener la configuracion del worker local.");
+      }
 
       try {
         setState((current) => ({ ...current, loading: true, error: null }));
@@ -796,20 +830,6 @@ export function useAgentConfiguration({
         );
         const recentDocs = (docsResult.data ?? []).map(mapAutonomousDoc);
 
-        let localConfig: AutoDevLocalConfig = {
-          ...DEFAULT_LOCAL_CONFIG,
-          enabledToolSlugs: new Set(DEFAULT_LOCAL_CONFIG.enabledToolSlugs),
-        };
-        try {
-          const rawConfig = await desktopBridge.autodevGetConfig();
-          if (rawConfig && typeof rawConfig === "object" && Object.keys(rawConfig).length > 0) {
-            const parsed = parseAutoDevConfig(rawConfig);
-            localConfig = { ...localConfig, ...parsed };
-          }
-        } catch {
-          warnings.push("No se pudo obtener la configuracion del worker local.");
-        }
-
         if (!cancelled) {
           setState((prev) => ({
             summary: {
@@ -850,6 +870,7 @@ export function useAgentConfiguration({
           setState((current) => ({
             ...current,
             loading: false,
+            localConfig,
             error:
               error instanceof Error
                 ? error.message
@@ -867,11 +888,21 @@ export function useAgentConfiguration({
   }, [repositoryId, workspaceId]);
 
   const pushToWorker = useCallback(async (updates: Record<string, unknown>) => {
-    if (savingRef.current) return;
+    if (savingRef.current) {
+      // Merge into pending queue instead of dropping the update
+      pendingUpdatesRef.current = { ...(pendingUpdatesRef.current ?? {}), ...updates };
+      return;
+    }
     savingRef.current = true;
     setState((prev) => ({ ...prev, saving: true, saveError: null }));
     try {
       await desktopBridge.autodevUpdateConfig(updates);
+      // Flush any updates that arrived while we were saving
+      while (pendingUpdatesRef.current) {
+        const queued = pendingUpdatesRef.current;
+        pendingUpdatesRef.current = null;
+        await desktopBridge.autodevUpdateConfig(queued);
+      }
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -944,15 +975,8 @@ export function useAgentConfiguration({
       },
     }));
 
-    const agentKeyMap: Record<string, string> = {
-      planning: "coder",
-      coding: "coder",
-      review: "reviewer",
-      research: "researcher",
-    };
-    const agentKey = agentKeyMap[role];
     await pushToWorker({
-      agents: { [agentKey]: { model } },
+      models: { [role]: model },
     });
 
     if (supabase && workspaceId) {

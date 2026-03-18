@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "../../../shared/lib/utils";
+import { MarkdownContent } from "../../../shared/components/markdown-content";
 import type { Mission } from "../hooks/use-missions";
 import type {
   AutodevHistoryEntry,
@@ -345,7 +346,7 @@ function SectionCard({
           {title}
         </p>
       </div>
-      <p className="text-sm leading-relaxed text-foreground/90">{content}</p>
+      <MarkdownContent text={content} className="space-y-1.5" />
     </div>
   );
 }

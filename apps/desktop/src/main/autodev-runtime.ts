@@ -686,6 +686,14 @@ async function runWithConcurrency<T>(
   return results;
 }
 
+type ModelFamily = "gemini" | "local";
+
+function detectModelFamily(modelId: string): ModelFamily {
+  const id = modelId.trim().toLowerCase();
+  if (id.startsWith("ollama/") || id.startsWith("lmstudio/")) return "local";
+  return "gemini";
+}
+
 export class AutodevRuntimeManager {
   private snapshot = createAutodevRuntimeSnapshot();
   private history: AutodevHistoryEntry[] = [];
@@ -2365,6 +2373,8 @@ export class AutodevRuntimeManager {
     ].join("\n");
   }
 
+  /* ─── AI Client Initialization ──────────────────────────────────── */
+
   private async ensureGeminiClient(): Promise<any> {
     if (this.geminiClient) {
       return this.geminiClient;
@@ -2422,82 +2432,155 @@ export class AutodevRuntimeManager {
     }
 
     throw new Error(
-      "No se encontro una API key de Gemini. Configura GEMINI_API_KEY o guarda auria-gemini-api-key en el almacenamiento seguro.",
+      "No se encontro una API key de Gemini. Configura tu API key en Settings > API Keys, o verifica que la key por defecto este activa en la base de datos.",
     );
   }
 
-  private resolveGeminiModel(
-    modelId: string,
-    role: "planning" | "coding" | "review" | "research",
-  ): string {
+  /* ─── Model Resolution ────────────────────────────────────────── */
+
+  private resolveGeminiModel(modelId: string): string {
     const normalized = modelId.trim().toLowerCase();
-    const defaultModel =
-      role === "planning" || role === "coding"
-        ? "gemini-2.5-pro"
-        : "gemini-2.5-flash";
 
     const modelMap: Record<string, string> = {
       "gemini-3.1-pro-preview-customtools": "gemini-2.5-pro",
       "gemini-3-flash-preview": "gemini-2.5-flash",
       "gemini-2.5-pro-preview-05-06": "gemini-2.5-pro",
       "gemini-2.5-flash-preview-05-20": "gemini-2.5-flash",
-      "gemini-2.0-flash": "gemini-2.0-flash",
     };
 
-    if (modelMap[normalized]) {
-      return modelMap[normalized];
-    }
-
-    if (normalized.startsWith("gemini-")) {
-      return normalized;
-    }
-
-    return defaultModel;
+    return modelMap[normalized] ?? (normalized.startsWith("gemini-") ? normalized : "gemini-2.5-pro");
   }
+
+  /* ─── Multi-Provider Dispatch ─────────────────────────────────── */
+
+  /**
+   * Checks token count and picks a lighter model from user config if prompt is too large.
+   */
+  private async getOptimalModel(client: any, intendedModel: string, promptText: string): Promise<string> {
+    const lighterModel = this.getUserFallbackModel(intendedModel);
+    try {
+      const model = client.getGenerativeModel({ model: intendedModel });
+      const { totalTokens } = await model.countTokens(promptText);
+      if (totalTokens > 200_000 && lighterModel !== intendedModel) {
+        console.log(`[AutoDev] Prompt masivo: ${totalTokens} tokens. Cambiando ${intendedModel} -> ${lighterModel}`);
+        return this.resolveGeminiModel(lighterModel);
+      }
+      return intendedModel;
+    } catch {
+      const estimated = Math.ceil(promptText.length / 4);
+      if (estimated > 200_000 && lighterModel !== intendedModel) {
+        console.log(`[AutoDev] Prompt masivo (heuristica): ~${estimated} tokens. Cambiando ${intendedModel} -> ${lighterModel}`);
+        return this.resolveGeminiModel(lighterModel);
+      }
+      return intendedModel;
+    }
+  }
+
+  /**
+   * Returns an alternative model from user config (different from the given one).
+   * Uses the user's configured models — never hardcoded values.
+   */
+  private getUserFallbackModel(currentResolved: string): string {
+    const models = this.snapshot.config.models;
+    // Collect all unique user-configured Gemini models
+    const candidates = new Set<string>();
+    for (const role of ["research", "review", "planning", "coding"] as const) {
+      const resolved = this.resolveGeminiModel(models[role]);
+      if (resolved !== currentResolved) {
+        candidates.add(models[role]);
+      }
+    }
+    // Return the first different one, or the same if no alternative
+    return candidates.values().next().value ?? currentResolved;
+  }
+
+  private isOverloadedError(err: any): boolean {
+    const msg = err?.message ?? "";
+    return msg.includes("503") || msg.includes("429")
+      || msg.includes("Service Unavailable") || msg.includes("RESOURCE_EXHAUSTED")
+      || msg.includes("fetch failed");
+  }
+
+  private async callGeminiDirect(modelId: string, prompt: string, jsonMode?: boolean): Promise<string> {
+    const client = await this.ensureGeminiClient();
+    let resolved = this.resolveGeminiModel(modelId);
+
+    // Check token count — downgrade if prompt is too large
+    resolved = await this.getOptimalModel(client, resolved, prompt);
+
+    // Attempt with primary model
+    try {
+      return await this.executeGeminiCall(client, resolved, prompt, jsonMode);
+    } catch (err: any) {
+      if (!this.isOverloadedError(err)) throw err;
+
+      // Get user's alternative model
+      const fallback = this.resolveGeminiModel(this.getUserFallbackModel(resolved));
+
+      // Cooldown 45s before fallback (let API quota reset)
+      console.warn(`[AutoDev] Modelo ${resolved} sobrecargado. Enfriando API por 45s antes de usar ${fallback}...`);
+      await new Promise((r) => setTimeout(r, 45_000));
+
+      try {
+        const result = await this.executeGeminiCall(client, fallback, prompt, jsonMode);
+        console.log(`[AutoDev] Fallback exitoso con ${fallback}`);
+        return result;
+      } catch (fallbackErr: any) {
+        if (!this.isOverloadedError(fallbackErr)) throw fallbackErr;
+
+        // Both models overloaded — wait 30s more and retry original
+        console.warn(`[AutoDev] Ambos modelos sobrecargados. Ultimo intento en 30s con ${resolved}...`);
+        await new Promise((r) => setTimeout(r, 30_000));
+        return this.executeGeminiCall(client, resolved, prompt, jsonMode);
+      }
+    }
+  }
+
+  private async executeGeminiCall(client: any, model: string, prompt: string, jsonMode?: boolean): Promise<string> {
+    const config: any = { model };
+    if (jsonMode) {
+      config.generationConfig = { responseMimeType: "application/json" };
+    }
+    const geminiModel = client.getGenerativeModel(config);
+    const result = await geminiModel.generateContent(prompt);
+    return result.response.text().trim();
+  }
+
+  private async dispatchModelCall(modelId: string, prompt: string, jsonMode?: boolean): Promise<string> {
+    const family = detectModelFamily(modelId);
+
+    switch (family) {
+      case "gemini":
+        return this.callGeminiDirect(modelId, prompt, jsonMode);
+      case "local":
+        // Local models not yet supported - fallback to Gemini
+        return this.callGeminiDirect("gemini-3-flash-preview", prompt, jsonMode);
+    }
+  }
+
+  /* ─── High-level AI Prompt Methods ────────────────────────────── */
 
   private async generateTextPrompt(
     prompt: string,
     selectedModel: string,
   ): Promise<string> {
-    const client = await this.ensureGeminiClient();
-    const resolvedModel = this.resolveGeminiModel(selectedModel, "review");
-    const model = client.getGenerativeModel({ model: resolvedModel });
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    return this.dispatchModelCall(selectedModel, prompt);
   }
 
   private async generateJsonPrompt<T>(
     prompt: string,
     selectedModel: string,
   ): Promise<T> {
-    const role: "planning" | "coding" | "review" | "research" =
-      selectedModel === this.snapshot.config.models.coding
-        ? "coding"
-        : selectedModel === this.snapshot.config.models.review
-          ? "review"
-          : selectedModel === this.snapshot.config.models.research
-            ? "research"
-            : "planning";
-
-    const client = await this.ensureGeminiClient();
-    const resolvedModel = this.resolveGeminiModel(selectedModel, role);
-    const model = client.getGenerativeModel({
-      model: resolvedModel,
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const firstAttempt = await model.generateContent(prompt);
-    const firstText = firstAttempt.response.text().trim();
+    const firstText = await this.dispatchModelCall(selectedModel, prompt, true);
     const firstParsed = safeParseJson<T>(firstText);
     if (firstParsed) {
       return firstParsed;
     }
 
-    const retryPrompt = `${prompt}\n\nResponde SOLO JSON valido, sin markdown ni explicacion adicional.`;
-    const secondAttempt = await model.generateContent(retryPrompt);
-    const secondText = secondAttempt.response.text().trim();
+    // Retry with explicit JSON instruction
+    const jsonHint = "\n\nResponde SOLO JSON valido, sin markdown ni explicacion adicional.";
+    const retryPrompt = `${prompt}${jsonHint}`;
+    const secondText = await this.dispatchModelCall(selectedModel, retryPrompt, true);
     const secondParsed = safeParseJson<T>(secondText);
     if (secondParsed) {
       return secondParsed;

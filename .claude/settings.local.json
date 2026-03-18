@@ -12,7 +12,9 @@
       "Bash(node -e \"const p = require\\(''./node_modules/tailwindcss/package.json''\\); console.log\\(''tailwindcss:'', p.version\\)\")",
       "Bash(npm run:*)",
       "Bash(npm uninstall:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(npm ls:*)",
+      "Bash(find 'c:\\\\Users\\\\fysg5\\\\OneDrive\\\\Escritorio\\\\Pulse Hub\\\\AQELOR\\\\AQELOR\\\\apps\\\\desktop' -name .env* -type f)"
     ]
   }
 }

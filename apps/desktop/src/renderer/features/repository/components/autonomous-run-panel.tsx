@@ -13,6 +13,7 @@ import {
   TerminalSquare,
 } from "lucide-react";
 import { cn } from "../../../shared/lib/utils";
+import { MarkdownContent } from "../../../shared/components/markdown-content";
 import {
   getAutodevModelLabel,
   type AutodevConsoleEntry,
@@ -331,7 +332,7 @@ function StageCard({
 
 function ConsoleWindow({ entries }: { entries: AutodevConsoleEntry[] }) {
   return (
-    <div className="flex min-h-[520px] flex-col overflow-hidden rounded-[30px] border border-border/60 bg-card/40">
+    <div className="flex h-150 flex-col overflow-hidden rounded-[30px] border border-border/60 bg-card/40">
       <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
@@ -353,27 +354,25 @@ function ConsoleWindow({ entries }: { entries: AutodevConsoleEntry[] }) {
           entries.map((entry) => (
             <div
               key={entry.id}
-              className="rounded-[22px] border border-border/50 bg-background/30 p-4"
+              className="min-w-0 overflow-hidden rounded-[22px] border border-border/50 bg-background/30 p-4"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className={cn(
-                  "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em]",
+                  "shrink-0 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em]",
                   consoleTone(entry.level),
                 )}>
                   {labelForConsoleLevel(entry.level)}
                 </span>
-                <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                   {formatDateTime(entry.timestamp)}
                 </span>
               </div>
-              <p className="mt-3 text-[11px] font-black uppercase tracking-[0.16em] text-foreground">
+              <p className="mt-3 break-words text-[11px] font-black uppercase tracking-[0.16em] text-foreground">
                 {entry.title}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {entry.content}
-              </p>
+              <MarkdownContent text={entry.content} />
               {entry.command ? (
-                <div className="mt-3 rounded-2xl border border-border/50 bg-background/60 px-3 py-2 font-mono text-[11px] text-primary">
+                <div className="mt-3 overflow-x-auto rounded-2xl border border-border/50 bg-background/60 px-3 py-2 font-mono text-[11px] break-all text-primary">
                   {entry.command}
                 </div>
               ) : null}
@@ -393,7 +392,7 @@ function ConsoleWindow({ entries }: { entries: AutodevConsoleEntry[] }) {
 
 function LiveFilesWindow({ files }: { files: AutodevLiveFileActivity[] }) {
   return (
-    <div className="flex min-h-[520px] flex-col overflow-hidden rounded-[30px] border border-border/60 bg-card/40">
+    <div className="flex h-150 flex-col overflow-hidden rounded-[30px] border border-border/60 bg-card/40">
       <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
@@ -431,9 +430,7 @@ function LiveFilesWindow({ files }: { files: AutodevLiveFileActivity[] }) {
               <p className="mt-3 break-all text-[11px] font-black uppercase tracking-[0.12em] text-foreground">
                 {file.path}
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {file.summary}
-              </p>
+              <MarkdownContent text={file.summary} />
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="rounded-full border border-border/50 bg-background/50 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                   {file.agent}
@@ -445,7 +442,7 @@ function LiveFilesWindow({ files }: { files: AutodevLiveFileActivity[] }) {
                   {file.linesTouched} lineas
                 </span>
               </div>
-              <pre className="mt-3 overflow-x-auto rounded-2xl border border-border/50 bg-background/70 p-3 text-[11px] leading-relaxed text-foreground/85">
+              <pre className="custom-scrollbar mt-3 max-h-48 overflow-auto rounded-2xl border border-border/50 bg-background/70 p-3 text-[11px] leading-relaxed text-foreground/85">
                 {file.excerpt}
               </pre>
             </div>
