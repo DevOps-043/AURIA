@@ -73,7 +73,9 @@ jobs:
       - name: Package Windows installer (.exe)
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: npx electron-builder --win --config electron-builder.json5 --project apps/desktop
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        working-directory: apps/desktop
+        run: npx electron-builder --win --config electron-builder.json5
 
       - name: List build output
         run: |
