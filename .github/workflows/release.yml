@@ -72,11 +72,10 @@ jobs:
 
       - name: Package Windows installer (.exe)
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
         working-directory: apps/desktop
         shell: cmd
-        run: ..\..\node_modules\.bin\electron-builder.cmd --win --config electron-builder.json5
+        run: ..\..\node_modules\.bin\electron-builder.cmd --win --publish never --config electron-builder.json5
 
       - name: List build output
         run: |
