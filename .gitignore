@@ -6,6 +6,7 @@ out/
 .electron/
 coverage/
 .vite/
+apps/desktop/release/
 .DS_Store
 Thumbs.db
 .env

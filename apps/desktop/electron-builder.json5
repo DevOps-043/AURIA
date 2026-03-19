@@ -3,6 +3,7 @@
   $schema: "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   appId: "com.pulsehub.aqelor",
   npmRebuild: false,
+  electronVersion: "41.0.2",
   electronDist: "../../node_modules/electron/dist",
   asar: true,
   productName: "AQELOR",
