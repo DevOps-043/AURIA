@@ -2,6 +2,8 @@
   "name": "@auria/desktop",
   "private": true,
   "version": "0.1.0",
+  "description": "AQELOR - Autonomous DevOps Desktop Application",
+  "author": "DevOps-043 <devops043@pulsehub.com>",
   "type": "module",
   "main": "out/main/index.cjs",
   "dependencies": {
@@ -24,6 +26,11 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "electron": "^41.0.2",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0"
   },
   "scripts": {
     "build": "electron-vite build",
