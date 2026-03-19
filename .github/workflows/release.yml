@@ -73,7 +73,7 @@ jobs:
       - name: Package Windows installer (.exe)
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: npx electron-builder --win --config apps/desktop/electron-builder.json5 --project apps/desktop
+        run: npx electron-builder --win --config electron-builder.json5 --project apps/desktop
 
       - name: List build output
         run: |
