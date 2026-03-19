@@ -1,5 +1,8 @@
 name: Build & Release
 
+env:
+  RELEASES_REPO: DevOps-043/DevOps-043-AQELOR-releases
+
 on:
   push:
     branches: [main]
@@ -35,7 +38,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
-          if gh release view "v${{ steps.version.outputs.version }}" --repo DevOps-043/AQELOR-releases > /dev/null 2>&1; then
+          if gh release view "v${{ steps.version.outputs.version }}" --repo "${{ env.RELEASES_REPO }}" > /dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
@@ -83,7 +86,7 @@ jobs:
           Get-ChildItem -Recurse apps/desktop/release/ | Select-Object FullName
         shell: pwsh
 
-      - name: Create release in AQELOR-releases
+      - name: Create release in DevOps-043-AQELOR-releases
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         shell: bash
@@ -106,7 +109,7 @@ jobs:
 
           # Crear release y subir archivos
           gh release create "v${VERSION}" \
-            --repo DevOps-043/AQELOR-releases \
+            --repo "${{ env.RELEASES_REPO }}" \
             --title "AQELOR v${VERSION}" \
             --notes "$NOTES" \
             apps/desktop/release/${VERSION}/*.exe \

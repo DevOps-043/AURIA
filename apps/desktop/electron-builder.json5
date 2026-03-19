@@ -11,7 +11,7 @@
     {
       provider: "github",
       owner: "DevOps-043",
-      repo: "AQELOR-releases",
+      repo: "DevOps-043-AQELOR-releases",
       releaseType: "release",
     },
   ],
