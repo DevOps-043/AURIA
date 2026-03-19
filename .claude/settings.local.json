@@ -14,7 +14,11 @@
       "Bash(npm uninstall:*)",
       "Bash(xargs grep:*)",
       "Bash(npm ls:*)",
-      "Bash(find 'c:\\\\Users\\\\fysg5\\\\OneDrive\\\\Escritorio\\\\Pulse Hub\\\\AQELOR\\\\AQELOR\\\\apps\\\\desktop' -name .env* -type f)"
+      "Bash(find 'c:\\\\Users\\\\fysg5\\\\OneDrive\\\\Escritorio\\\\Pulse Hub\\\\AQELOR\\\\AQELOR\\\\apps\\\\desktop' -name .env* -type f)",
+      "Bash(npx electron:*)",
+      "Bash(npx electron-builder:*)",
+      "Bash(node -e \"console.log\\(require.resolve\\(''electron/package.json''\\)\\)\")",
+      "Bash(node -p \"require\\(''c:/Users/fysg5/OneDrive/Escritorio/Pulse Hub/AURIA/AURIA/node_modules/electron/package.json''\\).version\")"
     ]
   }
 }
