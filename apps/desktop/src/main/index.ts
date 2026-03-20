@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session as electronSession } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Notification, nativeImage, safeStorage, session as electronSession } from "electron";
 import { join } from "node:path";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { createDemoWorkspaceSnapshot } from "@auria/domain";
@@ -27,10 +27,54 @@ let isQuitting = false;
 let workspaceSnapshot = createDemoWorkspaceSnapshot();
 const RENDERER_LOAD_RETRY_MS = [150, 300, 600, 1_200, 2_000];
 const updaterService = new UpdaterService();
+let lastAutodevStatus: string | null = null;
+
+function sendNativeNotification(title: string, body: string): void {
+  if (!Notification.isSupported()) return;
+  const iconPath = join(
+    app.isPackaged ? join(process.resourcesPath, "resources") : join(__dirname, "../../resources"),
+    process.platform === "win32" ? "tray-icon.ico" : "icon.png",
+  );
+  const notification = new Notification({
+    title,
+    body,
+    icon: existsSync(iconPath) ? iconPath : undefined,
+  });
+  notification.on("click", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+  notification.show();
+}
+
 const autodevRuntime = new AutodevRuntimeManager((snapshot) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(AUTODEV_RUNTIME_CHANNEL, snapshot);
   }
+
+  // Send native OS notification when a run finishes
+  const currentStatus = snapshot.state.status;
+  if (lastAutodevStatus === "running" && currentStatus && currentStatus !== "running") {
+    const filesCount = snapshot.state.report?.filesModified ?? 0;
+    if (currentStatus === "completed") {
+      sendNativeNotification(
+        "AQELOR — Run completado",
+        filesCount > 0
+          ? `Se modificaron ${filesCount} archivo(s) exitosamente.`
+          : "La ejecucion finalizo sin cambios.",
+      );
+    } else if (currentStatus === "failed") {
+      sendNativeNotification(
+        "AQELOR — Run fallido",
+        snapshot.state.lastError ?? "La ejecucion fallo con un error inesperado.",
+      );
+    } else if (currentStatus === "aborted") {
+      sendNativeNotification("AQELOR — Run abortado", "La ejecucion fue cancelada por el usuario.");
+    }
+  }
+  lastAutodevStatus = currentStatus ?? lastAutodevStatus;
 });
 
 // ─── Deep Link Protocol (OAuth callback) ────────────────────────────

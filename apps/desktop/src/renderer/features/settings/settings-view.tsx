@@ -19,6 +19,7 @@ import { BillingConsole } from './components/billing-console';
 import { ApiKeysManager } from './components/api-keys-manager';
 import { GeneralSettings } from './components/general-settings';
 import { UpdatePanel } from './components/update-panel';
+import { NotificationsPanel } from './components/notifications-panel';
 
 type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'notifications' | 'privacy' | 'billing' | 'updates';
 
@@ -164,18 +165,12 @@ export const SettingsView: React.FC = () => {
 
               {activeTab === 'notifications' && (
                 <section className="space-y-8 min-w-0">
-                  <SectionHeader 
-                    title="Notificaciones" 
-                    subtitle="Aqui se concentran los canales de contacto y entrega para evitar menus secundarios."
+                  <SectionHeader
+                    title="Notificaciones"
+                    subtitle="Configura los canales de notificacion y alertas del sistema"
                     icon={<Bell className="w-5 h-5" />}
                   />
-                  <EmptyStateCard
-                    icon={<Bell className="w-8 h-8 text-primary" />}
-                    title="Los controles de notificacion estan en consolidacion"
-                    description="Esta area queda lista para una siguiente iteracion de preferencias. Por ahora, las preferencias siguen integradas al perfil."
-                    actionLabel="Ir al perfil"
-                    onAction={() => setActiveTab('profile')}
-                  />
+                  <NotificationsPanel />
                 </section>
               )}
 

@@ -51,7 +51,6 @@ export const ProfileForm: React.FC = () => {
     github_username: '',
     notify_email: true,
     notify_push: true,
-    notify_sms: false,
     marketing_consent: false,
   });
 
@@ -90,7 +89,6 @@ export const ProfileForm: React.FC = () => {
             github_username: data.github_username || '',
             notify_email: data.notify_email ?? true,
             notify_push: data.notify_push ?? true,
-            notify_sms: data.notify_sms ?? false,
             marketing_consent: data.marketing_consent ?? false,
           });
         }
@@ -357,14 +355,6 @@ export const ProfileForm: React.FC = () => {
                     checked={formData.notify_push}
                     onChange={handleChange}
                     icon={<Bell className="w-4 h-4" />}
-                  />
-                  <ToggleItem 
-                    title="Mensajes SMS" 
-                    description="Notificaciones criticas por SMS"
-                    name="notify_sms"
-                    checked={formData.notify_sms}
-                    onChange={handleChange}
-                    icon={<Phone className="w-4 h-4" />}
                   />
                   <ToggleItem 
                     title="Mejora del producto" 
