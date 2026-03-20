@@ -42,7 +42,7 @@ for (const [key, value] of Object.entries(rootEnv)) {
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ["@auria/contracts", "@auria/domain", "@auria/ui"] })],
     resolve: {
       alias: workspaceAliases,
     },
@@ -56,7 +56,7 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ["@auria/contracts", "@auria/domain", "@auria/ui"] })],
     resolve: {
       alias: workspaceAliases,
     },
