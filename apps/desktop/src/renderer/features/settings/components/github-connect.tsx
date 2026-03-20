@@ -205,21 +205,6 @@ export const GitHubConnect: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <ConnectionFeature icon={<RefreshCw />} title="Sincronizacion" active={isConnected} />
-        <ConnectionFeature icon={<Link2 />} title="Webhooks" active={isConnected} />
-      </div>
     </div>
   );
 };
-
-function ConnectionFeature({ icon, title, active }: { icon: React.ReactNode, title: string, active: boolean }) {
-  return (
-    <div className={`p-3 rounded-2xl border flex items-center gap-3 transition-all ${
-      active ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-muted/30 border-border text-muted-foreground opacity-50'
-    }`}>
-      <div className="scale-75">{icon}</div>
-      <span className="text-[9px] font-black uppercase tracking-widest">{title}</span>
-    </div>
-  );
-}
