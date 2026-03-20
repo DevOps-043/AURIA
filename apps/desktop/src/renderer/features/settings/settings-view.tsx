@@ -4,7 +4,6 @@ import {
   User,
   Settings,
   Shield,
-  Bell,
   Link2,
   CreditCard,
   Download,
@@ -19,9 +18,8 @@ import { BillingConsole } from './components/billing-console';
 import { ApiKeysManager } from './components/api-keys-manager';
 import { GeneralSettings } from './components/general-settings';
 import { UpdatePanel } from './components/update-panel';
-import { NotificationsPanel } from './components/notifications-panel';
 
-type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'notifications' | 'privacy' | 'billing' | 'updates';
+type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'privacy' | 'billing' | 'updates';
 
 export const SettingsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -73,12 +71,6 @@ export const SettingsView: React.FC = () => {
               label="API Keys"
             />
             <TabButton
-              active={activeTab === 'notifications'}
-              onClick={() => setActiveTab('notifications')}
-              icon={<Bell className="w-4 h-4" />}
-              label="Notificaciones"
-            />
-            <TabButton 
               active={activeTab === 'privacy'} 
               onClick={() => setActiveTab('privacy')}
               icon={<Shield className="w-4 h-4" />}
@@ -160,17 +152,6 @@ export const SettingsView: React.FC = () => {
                     icon={<Key className="w-5 h-5" />}
                   />
                   <ApiKeysManager />
-                </section>
-              )}
-
-              {activeTab === 'notifications' && (
-                <section className="space-y-8 min-w-0">
-                  <SectionHeader
-                    title="Notificaciones"
-                    subtitle="Configura los canales de notificacion y alertas del sistema"
-                    icon={<Bell className="w-5 h-5" />}
-                  />
-                  <NotificationsPanel />
                 </section>
               )}
 
