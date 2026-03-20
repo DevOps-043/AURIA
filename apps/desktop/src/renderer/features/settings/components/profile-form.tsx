@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Camera, 
-  Mail, 
-  Save, 
-  ShieldCheck, 
-  Globe, 
-  Briefcase, 
-  MessageSquare, 
-  Bell, 
+  Save,
+  ShieldCheck,
+  Globe,
+  Briefcase,
   Settings2,
   Phone,
   Linkedin,
@@ -24,7 +21,7 @@ import { useAuth } from '@/shared/hooks/use-auth';
 import { supabase } from '@/shared/api/supabase-client';
 import { Button } from '@/shared/components/ui/button';
 
-type FormTab = 'general' | 'professional' | 'localization' | 'signals';
+type FormTab = 'general' | 'professional' | 'localization';
 
 export const ProfileForm: React.FC = () => {
   const { user } = useAuth();
@@ -49,9 +46,6 @@ export const ProfileForm: React.FC = () => {
     linkedin_url: '',
     website_url: '',
     github_username: '',
-    notify_email: true,
-    notify_push: true,
-    marketing_consent: false,
   });
 
   useEffect(() => {
@@ -87,9 +81,6 @@ export const ProfileForm: React.FC = () => {
             linkedin_url: data.linkedin_url || '',
             website_url: data.website_url || '',
             github_username: data.github_username || '',
-            notify_email: data.notify_email ?? true,
-            notify_push: data.notify_push ?? true,
-            marketing_consent: data.marketing_consent ?? false,
           });
         }
       } catch (err) {
@@ -152,7 +143,6 @@ export const ProfileForm: React.FC = () => {
         <SubTabButton active={activeTab === 'general'} onClick={() => setActiveTab('general')} label="Perfil base" />
         <SubTabButton active={activeTab === 'professional'} onClick={() => setActiveTab('professional')} label="Profesional" />
         <SubTabButton active={activeTab === 'localization'} onClick={() => setActiveTab('localization')} label="Ubicacion" />
-        <SubTabButton active={activeTab === 'signals'} onClick={() => setActiveTab('signals')} label="Alertas" />
       </div>
 
       <form onSubmit={handleUpdateProfile} className="space-y-12">
@@ -337,36 +327,6 @@ export const ProfileForm: React.FC = () => {
               </div>
             )}
 
-            {activeTab === 'signals' && (
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <ToggleItem 
-                    title="Notificaciones por correo" 
-                    description="Recibe eventos por correo electronico"
-                    name="notify_email"
-                    checked={formData.notify_email}
-                    onChange={handleChange}
-                    icon={<Mail className="w-4 h-4" />}
-                  />
-                  <ToggleItem 
-                    title="Alertas push" 
-                    description="Alertas en tiempo real del sistema"
-                    name="notify_push"
-                    checked={formData.notify_push}
-                    onChange={handleChange}
-                    icon={<Bell className="w-4 h-4" />}
-                  />
-                  <ToggleItem 
-                    title="Mejora del producto" 
-                    description="Permite usar datos para mejorar el sistema"
-                    name="marketing_consent"
-                    checked={formData.marketing_consent}
-                    onChange={handleChange}
-                    icon={<Settings2 className="w-4 h-4" />}
-                  />
-                </div>
-              </div>
-            )}
           </motion.div>
         </AnimatePresence>
 
@@ -465,37 +425,3 @@ function InputField({ label, name, value, onChange, placeholder, icon }: {
   );
 }
 
-function ToggleItem({ title, description, name, checked, onChange, icon }: { 
-  title: string, 
-  description: string, 
-  name: string, 
-  checked: boolean, 
-  onChange: (e: any) => void,
-  icon: React.ReactNode
-}) {
-  return (
-    <label className={`flex items-start gap-4 p-5 rounded-[1.8rem] border transition-all cursor-pointer select-none ${
-      checked ? 'bg-primary/5 border-primary/20' : 'bg-card border-border/40 hover:border-border'
-    }`}>
-      <div className={`p-2.5 rounded-xl ${checked ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
-        {icon}
-      </div>
-      <div className="flex-1 space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-black text-foreground uppercase tracking-widest">{title}</span>
-          <div className={`w-10 h-6 rounded-full relative transition-colors ${checked ? 'bg-primary' : 'bg-muted'}`}>
-            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${checked ? 'left-5' : 'left-1'}`} />
-          </div>
-        </div>
-        <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-tight">{description}</p>
-      </div>
-      <input 
-        type="checkbox" 
-        name={name} 
-        checked={checked} 
-        onChange={onChange} 
-        className="hidden" 
-      />
-    </label>
-  );
-}
