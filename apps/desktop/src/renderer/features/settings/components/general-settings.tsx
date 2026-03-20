@@ -26,7 +26,7 @@ export const GeneralSettings: React.FC = () => {
         icon={<Power className="w-5 h-5 text-cyan-300" />}
         iconBg="bg-cyan-500/10 border-cyan-500/20"
         title="Inicio automatico"
-        description="Iniciar Auria al encender el equipo. La aplicacion arranca minimizada en la bandeja del sistema."
+        description="Iniciar AQELOR al encender el equipo. La aplicacion arranca minimizada en la bandeja del sistema."
         toggle={
           <ToggleSwitch
             enabled={autoLaunch}
@@ -41,7 +41,7 @@ export const GeneralSettings: React.FC = () => {
         icon={<Monitor className="w-5 h-5 text-violet-300" />}
         iconBg="bg-violet-500/10 border-violet-500/20"
         title="Modo segundo plano"
-        description="Al cerrar la ventana, Auria permanece activa en la bandeja del sistema ejecutando agentes programados."
+        description="Al cerrar la ventana, AQELOR permanece activa en la bandeja del sistema ejecutando agentes programados."
         badge="Siempre activo"
       />
     </div>

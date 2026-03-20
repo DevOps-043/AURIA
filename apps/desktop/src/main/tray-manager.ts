@@ -41,7 +41,7 @@ function rebuildContextMenu(
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: isVisible ? "Ocultar Auria" : "Mostrar Auria",
+      label: isVisible ? "Ocultar AQELOR" : "Mostrar AQELOR",
       click: () => {
         if (mainWindow.isVisible()) {
           mainWindow.hide();
@@ -78,7 +78,7 @@ export function createTray(
 ): void {
   const icon = resolveTrayIcon();
   tray = new Tray(icon);
-  tray.setToolTip("Auria — AQELOR");
+  tray.setToolTip("AQELOR");
 
   // Single-click toggles window visibility (Windows convention)
   tray.on("click", () => {

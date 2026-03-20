@@ -1475,7 +1475,7 @@ export class AutodevRuntimeManager {
         `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
         {
           headers: {
-            "User-Agent": "Auria-Autodev/1.0",
+            "User-Agent": "AQELOR-Autodev/1.0",
           },
           signal,
         },
@@ -1508,7 +1508,7 @@ export class AutodevRuntimeManager {
   private async readWebPage(url: string, signal?: AbortSignal): Promise<string> {
     try {
       const response = await fetch(url, {
-        headers: { "User-Agent": "Auria-Autodev/1.0" },
+        headers: { "User-Agent": "AQELOR-Autodev/1.0" },
         signal,
       });
       const body = await response.text();

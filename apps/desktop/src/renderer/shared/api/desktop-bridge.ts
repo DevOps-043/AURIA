@@ -152,7 +152,7 @@ async function githubJsonFetch<T>(path: string): Promise<T> {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github.object+json",
-      "User-Agent": "Auria-Desktop",
+      "User-Agent": "AQELOR-Desktop",
     },
   });
 
@@ -169,7 +169,7 @@ async function githubTextFetch(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "User-Agent": "Auria-Desktop",
+      "User-Agent": "AQELOR-Desktop",
     },
   });
 

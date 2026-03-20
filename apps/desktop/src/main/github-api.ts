@@ -294,7 +294,7 @@ export class GitHubAPI {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: options?.accept ?? "application/vnd.github.v3+json",
-        "User-Agent": "Auria-Desktop",
+        "User-Agent": "AQELOR-Desktop",
       },
     });
 
@@ -337,7 +337,7 @@ export class GitHubAPI {
     const response = await net.fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
-        "User-Agent": "Auria-Desktop",
+        "User-Agent": "AQELOR-Desktop",
       },
     });
 

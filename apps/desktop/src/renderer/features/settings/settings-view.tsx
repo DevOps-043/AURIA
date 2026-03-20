@@ -69,7 +69,7 @@ export const SettingsView: React.FC = () => {
 
         <div className="rounded-[2rem] border border-primary/10 bg-primary/5 px-5 py-4 md:px-6">
           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">
-            Auria Intelligence
+            AQELOR Intelligence
           </p>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
             La navegacion lateral se elimino para que cada seccion use todo el ancho disponible.

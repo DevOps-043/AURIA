@@ -61,23 +61,31 @@ export const ProfileForm: React.FC = () => {
         setFetching(false);
         return;
       }
-      
+
+      // SSO metadata fallback (GitHub OAuth provides these)
+      const meta = user.user_metadata ?? {};
+      const ssoFullName = meta.full_name || meta.name || '';
+      const ssoFirstName = ssoFullName.split(' ')[0] || '';
+      const ssoLastName = ssoFullName.includes(' ') ? ssoFullName.slice(ssoFullName.indexOf(' ') + 1) : '';
+      const ssoAvatar = meta.avatar_url || '';
+      const ssoGithub = meta.preferred_username || meta.user_name || '';
+
       try {
         const { data, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', user.id)
           .single();
-        
+
         if (error) throw error;
-        
+
         if (data) {
           setFormData({
-            first_name: data.first_name || '',
-            last_name: data.last_name || '',
+            first_name: data.first_name || ssoFirstName,
+            last_name: data.last_name || ssoLastName,
             phone: data.phone || '',
             bio: data.bio || '',
-            avatar_url: data.avatar_url || '',
+            avatar_url: data.avatar_url || ssoAvatar,
             country_code: data.country_code || '',
             city: data.city || '',
             locale: data.locale || 'es',
@@ -87,7 +95,7 @@ export const ProfileForm: React.FC = () => {
             industry: data.industry || '',
             linkedin_url: data.linkedin_url || '',
             website_url: data.website_url || '',
-            github_username: data.github_username || '',
+            github_username: data.github_username || ssoGithub,
             notify_email: data.notify_email ?? true,
             notify_push: data.notify_push ?? true,
             marketing_consent: data.marketing_consent ?? false,

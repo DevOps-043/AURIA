@@ -384,7 +384,7 @@ const createMainWindow = async () => {
     width: 1280,
     height: 900,
     backgroundColor: "#0B0F14",
-    title: "Auria",
+    title: "AQELOR",
     icon: resolveWindowIcon(),
     autoHideMenuBar: true,
     center: true,
