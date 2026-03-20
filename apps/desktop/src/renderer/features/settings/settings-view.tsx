@@ -4,20 +4,16 @@ import {
   User,
   Settings,
   Link2,
-  CreditCard,
   Download,
   Fingerprint,
-  Key,
   Monitor,
 } from 'lucide-react';
 import { ProfileForm } from './components/profile-form';
-import { GitHubConnect } from './components/github-connect';
-import { BillingConsole } from './components/billing-console';
-import { ApiKeysManager } from './components/api-keys-manager';
+import { ConnectionsPanel } from './components/connections-panel';
 import { GeneralSettings } from './components/general-settings';
 import { UpdatePanel } from './components/update-panel';
 
-type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'billing' | 'updates';
+type SettingsTab = 'general' | 'profile' | 'connections' | 'updates';
 
 export const SettingsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -56,23 +52,11 @@ export const SettingsView: React.FC = () => {
               icon={<User className="w-4 h-4" />}
               label="Identidad"
             />
-            <TabButton 
-              active={activeTab === 'connections'} 
+            <TabButton
+              active={activeTab === 'connections'}
               onClick={() => setActiveTab('connections')}
               icon={<Link2 className="w-4 h-4" />}
               label="Conexiones"
-            />
-            <TabButton
-              active={activeTab === 'api-keys'}
-              onClick={() => setActiveTab('api-keys')}
-              icon={<Key className="w-4 h-4" />}
-              label="API Keys"
-            />
-            <TabButton
-              active={activeTab === 'billing'}
-              onClick={() => setActiveTab('billing')}
-              icon={<CreditCard className="w-4 h-4" />}
-              label="Facturacion y uso"
             />
             <TabButton
               active={activeTab === 'updates'}
@@ -127,34 +111,12 @@ export const SettingsView: React.FC = () => {
 
               {activeTab === 'connections' && (
                 <section className="space-y-8 md:space-y-10 min-w-0">
-                  <SectionHeader 
-                    title="Conexiones externas" 
-                    subtitle="Administra integraciones y enlaces a servicios de terceros"
+                  <SectionHeader
+                    title="Conexiones y API Keys"
+                    subtitle="Administra integraciones, enlaces a servicios de terceros y credenciales de IA"
                     icon={<Link2 className="w-5 h-5" />}
                   />
-                  <GitHubConnect />
-                </section>
-              )}
-
-              {activeTab === 'api-keys' && (
-                <section className="space-y-8 md:space-y-10 min-w-0">
-                  <SectionHeader
-                    title="API Keys de modelos"
-                    subtitle="Configura tus propias credenciales de IA o usa las de AQELOR por defecto"
-                    icon={<Key className="w-5 h-5" />}
-                  />
-                  <ApiKeysManager />
-                </section>
-              )}
-
-              {activeTab === 'billing' && (
-                <section className="space-y-8 md:space-y-10 min-w-0">
-                  <SectionHeader
-                    title="Facturacion y uso"
-                    subtitle="Suscripciones, cartera AU, paquetes y estado del proveedor"
-                    icon={<CreditCard className="w-5 h-5" />}
-                  />
-                  <BillingConsole />
+                  <ConnectionsPanel />
                 </section>
               )}
 

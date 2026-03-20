@@ -23,8 +23,9 @@ import { useAuth } from '@/shared/hooks/use-auth';
 import { supabase } from '@/shared/api/supabase-client';
 import { Button } from '@/shared/components/ui/button';
 import { SecurityForm } from './security-form';
+import { BillingConsole } from './billing-console';
 
-type FormTab = 'general' | 'professional' | 'localization' | 'notifications' | 'security';
+type FormTab = 'general' | 'professional' | 'localization' | 'notifications' | 'security' | 'billing';
 
 export const ProfileForm: React.FC = () => {
   const { user } = useAuth();
@@ -154,16 +155,18 @@ export const ProfileForm: React.FC = () => {
         <SubTabButton active={activeTab === 'localization'} onClick={() => setActiveTab('localization')} label="Ubicacion" />
         <SubTabButton active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} label="Notificaciones" />
         <SubTabButton active={activeTab === 'security'} onClick={() => setActiveTab('security')} label="Seguridad" />
+        <SubTabButton active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} label="Facturacion" />
       </div>
 
-      {activeTab === 'security' ? (
+      {activeTab === 'security' || activeTab === 'billing' ? (
         <motion.div
-          key="security"
+          key={activeTab}
           initial={{ opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.15 }}
         >
-          <SecurityForm />
+          {activeTab === 'security' && <SecurityForm />}
+          {activeTab === 'billing' && <BillingConsole />}
         </motion.div>
       ) : (
       <form onSubmit={handleUpdateProfile} className="space-y-12">
