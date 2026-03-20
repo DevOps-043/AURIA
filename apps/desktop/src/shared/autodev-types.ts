@@ -45,6 +45,35 @@ export type AutodevLiveFileStatus =
   | "testing"
   | "completed";
 
+export type AutodevIncidentCategory =
+  | "model_error"
+  | "git_error"
+  | "build_error"
+  | "lint_error"
+  | "test_error"
+  | "implementation_error"
+  | "runtime_error"
+  | "abort"
+  | "validation_error"
+  | "permission_error";
+
+export type AutodevIncidentSeverity = "low" | "medium" | "high" | "critical";
+
+export type AutodevIncidentStatus = "open" | "acknowledged" | "resolved" | "dismissed";
+
+export interface AutodevIncident {
+  id: string;
+  runId: string;
+  stageId: AutodevStageId | null;
+  category: AutodevIncidentCategory;
+  severity: AutodevIncidentSeverity;
+  title: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  status: AutodevIncidentStatus;
+  createdAt: string;
+}
+
 export interface AutodevScheduleEntry {
   id: string;
   enabled: boolean;
@@ -163,6 +192,7 @@ export interface AutodevRunState {
   console: AutodevConsoleEntry[];
   liveFiles: AutodevLiveFileActivity[];
   report: AutodevRunReport | null;
+  incidents: AutodevIncident[];
 }
 
 export interface AutodevRuntimeSnapshot {
@@ -365,6 +395,7 @@ export function createIdleAutodevState(
     console: [],
     liveFiles: [],
     report: null,
+    incidents: [],
   };
 }
 

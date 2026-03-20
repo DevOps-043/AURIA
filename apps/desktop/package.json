@@ -1,7 +1,7 @@
 {
   "name": "@auria/desktop",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AQELOR - Autonomous DevOps Desktop Application",
   "author": "DevOps-043 <devops043@pulsehub.com>",
   "type": "module",

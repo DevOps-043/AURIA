@@ -17,6 +17,7 @@ import type {
 } from "../shared/github-types";
 import {
   AUTODEV_RUNTIME_CHANNEL,
+  type AutodevIncident,
   type AutodevRunRequest,
   type AutodevRuntimeSnapshot,
 } from "../shared/autodev-types";
@@ -113,6 +114,10 @@ const auriaBridge = {
     ipcRenderer.invoke("autodev:run-now", request) as Promise<{ success: boolean; runId?: string; error?: string }>,
   autodevAbortRun: () =>
     ipcRenderer.invoke("autodev:abort-run") as Promise<{ success: boolean }>,
+  autodevGetIncidents: () =>
+    ipcRenderer.invoke("autodev:get-incidents") as Promise<AutodevIncident[]>,
+  autodevUpdateIncident: (incidentId: string, status: string, resolvedBy?: string) =>
+    ipcRenderer.invoke("autodev:update-incident", incidentId, status, resolvedBy) as Promise<boolean>,
   onAutodevRuntimeUpdate: (callback: (snapshot: AutodevRuntimeSnapshot) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, snapshot: AutodevRuntimeSnapshot) => {
       callback(snapshot);

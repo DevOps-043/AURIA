@@ -6,6 +6,7 @@ import {
   User as UserIcon, Sun, Moon, Monitor, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/shared/hooks/use-auth';
+import { useIncidentSync } from '@/shared/hooks/use-incident-sync';
 import { useTheme, type Theme } from '@/shared/hooks/use-theme';
 import { useDashboardData } from './hooks/use-dashboard-data';
 import { RepoCard, EmptyRepoSlot } from './components/repo-card';
@@ -27,6 +28,10 @@ export const DashboardPage: React.FC<DashboardProps> = ({ onSignOut }) => {
   const [selectedRepoId, setSelectedRepoId] = React.useState<string | null>(null);
   const [showRepoPicker, setShowRepoPicker] = React.useState(false);
   const { repos, activities, plan, workspaceId, connectedExternalIds, loading, error, refetch } = useDashboardData();
+  const { user } = useAuth();
+
+  // Sync autodev incidents to Supabase on run completion
+  useIncidentSync(user?.id);
 
   const handleRepoSelect = (id: string) => {
     setSelectedRepoId(id);

@@ -9,6 +9,7 @@ import {
 import { createDemoWorkspaceSnapshot } from "@auria/domain";
 import {
   createAutodevRuntimeSnapshot,
+  type AutodevIncident,
   type AutodevRunRequest,
   type AutodevRuntimeSnapshot,
 } from "../../../shared/autodev-types";
@@ -656,6 +657,29 @@ export const desktopBridge = {
       return () => undefined;
     }
     return auria.onAutodevRuntimeUpdate(callback);
+  },
+
+  // ─── Incident Tracking ───────────────────────────────────────
+  autodevGetIncidents: async (): Promise<AutodevIncident[]> => {
+    if (!window.auria?.autodevGetIncidents) return [];
+    try {
+      return await window.auria.autodevGetIncidents();
+    } catch {
+      return [];
+    }
+  },
+
+  autodevUpdateIncident: async (
+    incidentId: string,
+    status: AutodevIncident["status"],
+    resolvedBy?: string,
+  ): Promise<boolean> => {
+    if (!window.auria?.autodevUpdateIncident) return false;
+    try {
+      return await window.auria.autodevUpdateIncident(incidentId, status, resolvedBy);
+    } catch {
+      return false;
+    }
   },
 
   // ─── App Settings (auto-launch / background) ─────────────────

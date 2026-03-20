@@ -15,6 +15,7 @@ import type {
   GitHubUser,
 } from "../shared/github-types";
 import type {
+  AutodevIncident,
   AutodevRunRequest,
   AutodevRuntimeSnapshot,
 } from "../shared/autodev-types";
@@ -72,6 +73,8 @@ export type AuriaBridge = {
   autodevSetContext: (context: AutodevRunRequest) => Promise<{ success: boolean }>;
   autodevRunNow: (request?: AutodevRunRequest) => Promise<{ success: boolean; runId?: string; error?: string }>;
   autodevAbortRun: () => Promise<{ success: boolean }>;
+  autodevGetIncidents: () => Promise<AutodevIncident[]>;
+  autodevUpdateIncident: (incidentId: string, status: string, resolvedBy?: string) => Promise<boolean>;
   onAutodevRuntimeUpdate: (callback: (snapshot: AutodevRuntimeSnapshot) => void) => () => void;
 
   // Filesystem & Shell

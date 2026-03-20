@@ -18,7 +18,12 @@
       "Bash(npx electron:*)",
       "Bash(npx electron-builder:*)",
       "Bash(node -e \"console.log\\(require.resolve\\(''electron/package.json''\\)\\)\")",
-      "Bash(node -p \"require\\(''c:/Users/fysg5/OneDrive/Escritorio/Pulse Hub/AURIA/AURIA/node_modules/electron/package.json''\\).version\")"
+      "Bash(node -p \"require\\(''c:/Users/fysg5/OneDrive/Escritorio/Pulse Hub/AURIA/AURIA/node_modules/electron/package.json''\\).version\")",
+      "Bash(npx --yes sharp-cli -i \"/c/Users/fysg5/OneDrive/Escritorio/Pulse Hub/AQELOR/AQELOR/AQUELOR BLANCO.png\" -o \"/c/Users/fysg5/OneDrive/Escritorio/Pulse Hub/AQELOR/AQELOR/apps/desktop/build/icon_square.png\" -- resize 256 256 --fit contain --background \"{\"\"r\"\":0,\"\"g\"\":0,\"\"b\"\":0,\"\"alpha\"\":0}\")",
+      "Bash(npx --yes --package=sharp -c \"node -e \"\":*)",
+      "Bash(npx --yes --package=sharp -c \"node -e \"\"const sharp = require\\(''sharp''\\); sharp\\(''AQUELOR BLANCO.png''\\).resize\\(256, 256, { fit: ''contain'', background: { r: 0, g: 0, b: 0, alpha: 0 } }\\).png\\(\\).toFile\\(''apps/desktop/build/icon_square.png''\\).then\\(\\(\\) => console.log\\(''DONE''\\)\\).catch\\(e => console.error\\(e\\)\\);\"\"\")",
+      "Bash(node -e \":*)",
+      "Bash(npx --yes jimp-cli --version)"
     ]
   }
 }

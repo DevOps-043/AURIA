@@ -25,6 +25,9 @@ import type {
   AutodevConfig,
   AutodevConsoleEntry,
   AutodevHistoryEntry,
+  AutodevIncident,
+  AutodevIncidentCategory,
+  AutodevIncidentSeverity,
   AutodevLiveFileActivity,
   AutodevQaCheck,
   AutodevRunRequest,
@@ -794,6 +797,30 @@ export class AutodevRuntimeManager {
     }));
   }
 
+  getIncidents(): AutodevIncident[] {
+    return this.snapshot.state.incidents.map((inc) => ({ ...inc, metadata: { ...inc.metadata } }));
+  }
+
+  updateIncidentStatus(
+    incidentId: string,
+    status: AutodevIncident["status"],
+    resolvedBy?: string,
+  ): boolean {
+    const index = this.snapshot.state.incidents.findIndex((inc) => inc.id === incidentId);
+    if (index === -1) return false;
+
+    this.snapshot.state = {
+      ...this.snapshot.state,
+      incidents: this.snapshot.state.incidents.map((inc) =>
+        inc.id === incidentId
+          ? { ...inc, status, ...(status === "resolved" ? { resolvedBy: resolvedBy ?? "user" } : {}) } as AutodevIncident
+          : inc,
+      ),
+    };
+    this.emit();
+    return true;
+  }
+
   async startRun(
     request?: Record<string, unknown>,
   ): Promise<{ success: boolean; runId?: string; error?: string }> {
@@ -829,6 +856,7 @@ export class AutodevRuntimeManager {
       console: [],
       liveFiles: [],
       report: null,
+      incidents: [],
     };
 
     this.appendConsole(
@@ -1150,11 +1178,27 @@ export class AutodevRuntimeManager {
       };
 
       const isAbort = error instanceof AutodevAbortError;
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido.";
       this.appendConsole(
         isAbort ? "warning" : "error",
         `${stageTitle} ${isAbort ? "interrumpido" : "fallo"}`,
-        error instanceof Error ? error.message : "Error desconocido.",
+        errorMessage,
       );
+
+      // Record incident for non-abort errors
+      if (!isAbort) {
+        const category = this.classifyStageError(stageId, errorMessage);
+        this.recordIncident(
+          category,
+          "high",
+          `${stageTitle} fallo`,
+          errorMessage,
+          { stageId, stageTitle },
+        );
+      } else {
+        this.recordIncident("abort", "low", "Ejecucion abortada", errorMessage, { stageId });
+      }
+
       this.emit();
       throw error;
     }
@@ -2258,6 +2302,40 @@ export class AutodevRuntimeManager {
       summary,
     );
 
+    // Record incidents from failed QA checks
+    for (const check of execution.qaChecks) {
+      if (check.result === "failed") {
+        const category: AutodevIncidentCategory =
+          check.id === "build" ? "build_error" :
+          check.id === "lint" ? "lint_error" :
+          check.id === "typecheck" ? "build_error" :
+          "validation_error";
+        this.recordIncident(
+          category,
+          "high",
+          `QA fallido: ${check.label}`,
+          check.details,
+          { checkId: check.id, runId: execution.runId },
+        );
+      }
+    }
+
+    // Record run-level failure incident
+    if (status === "failed" && errorMessage) {
+      const hasStageIncident = this.snapshot.state.incidents.some(
+        (inc) => inc.runId === execution.runId && inc.category !== "abort",
+      );
+      if (!hasStageIncident) {
+        this.recordIncident(
+          "runtime_error",
+          "critical",
+          "Run fallido",
+          errorMessage,
+          { runId: execution.runId },
+        );
+      }
+    }
+
     this.abortController = null;
     this.emit();
   }
@@ -2517,6 +2595,15 @@ export class AutodevRuntimeManager {
       // Get user's alternative model
       const fallback = this.resolveGeminiModel(this.getUserFallbackModel(resolved));
 
+      // Record model overload incident
+      this.recordIncident(
+        "model_error",
+        "medium",
+        `Modelo ${resolved} sobrecargado`,
+        `El modelo ${resolved} devolvio error de sobrecarga. Intentando fallback con ${fallback}.`,
+        { model: resolved, fallbackModel: fallback, errorMessage: err?.message },
+      );
+
       // Cooldown 45s before fallback (let API quota reset)
       console.warn(`[AutoDev] Modelo ${resolved} sobrecargado. Enfriando API por 45s antes de usar ${fallback}...`);
       await new Promise((r) => setTimeout(r, 45_000));
@@ -2529,6 +2616,14 @@ export class AutodevRuntimeManager {
         if (!this.isOverloadedError(fallbackErr)) throw fallbackErr;
 
         // Both models overloaded — wait 30s more and retry original
+        this.recordIncident(
+          "model_error",
+          "high",
+          "Ambos modelos sobrecargados",
+          `Tanto ${resolved} como ${fallback} estan sobrecargados. Ultimo intento tras espera adicional.`,
+          { model: resolved, fallbackModel: fallback },
+        );
+
         console.warn(`[AutoDev] Ambos modelos sobrecargados. Ultimo intento en 30s con ${resolved}...`);
         await new Promise((r) => setTimeout(r, 30_000));
         return this.executeGeminiCall(client, resolved, prompt, jsonMode);
@@ -2788,6 +2883,70 @@ export class AutodevRuntimeManager {
     };
   }
 
+  private classifyStageError(
+    stageId: AutodevStageId,
+    message: string,
+  ): AutodevIncidentCategory {
+    const lower = message.toLowerCase();
+
+    // Git-related errors
+    if (lower.includes("git") || lower.includes("push") || lower.includes("branch") || lower.includes("merge")) {
+      return "git_error";
+    }
+
+    // Model/API errors
+    if (
+      lower.includes("api") || lower.includes("rate limit") || lower.includes("token") ||
+      lower.includes("model") || lower.includes("gemini") || lower.includes("429") ||
+      lower.includes("500") || lower.includes("503") || lower.includes("timeout")
+    ) {
+      return "model_error";
+    }
+
+    // Permission errors
+    if (lower.includes("permission") || lower.includes("access denied") || lower.includes("eacces") || lower.includes("forbidden")) {
+      return "permission_error";
+    }
+
+    // Stage-specific classification
+    switch (stageId) {
+      case "parallel-coding":
+        return "implementation_error";
+      case "code-review":
+        return "validation_error";
+      case "qa-validation":
+        return "build_error";
+      default:
+        return "runtime_error";
+    }
+  }
+
+  private recordIncident(
+    category: AutodevIncidentCategory,
+    severity: AutodevIncidentSeverity,
+    title: string,
+    message: string,
+    metadata: Record<string, unknown> = {},
+  ): void {
+    const incident: AutodevIncident = {
+      id: `inc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      runId: this.snapshot.state.currentRunId ?? "unknown",
+      stageId: this.snapshot.state.currentStageId ?? null,
+      category,
+      severity,
+      title,
+      message: truncate(message, 2000),
+      metadata,
+      status: "open",
+      createdAt: nowIso(),
+    };
+
+    this.snapshot.state = {
+      ...this.snapshot.state,
+      incidents: [...this.snapshot.state.incidents, incident],
+    };
+  }
+
   private upsertLiveFile(
     input: Omit<AutodevLiveFileActivity, "id" | "updatedAt"> & {
       updatedAt?: string;
@@ -2926,6 +3085,7 @@ function cloneState(state: AutodevRuntimeSnapshot["state"]): AutodevRuntimeSnaps
           qaChecks: state.report.qaChecks.map((check) => ({ ...check })),
         }
       : null,
+    incidents: state.incidents.map((inc) => ({ ...inc, metadata: { ...inc.metadata } })),
   };
 }
 

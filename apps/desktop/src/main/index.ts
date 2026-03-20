@@ -518,6 +518,12 @@ const registerIpcHandlers = () => {
 
   ipcMain.handle("autodev:abort-run", async () => autodevRuntime.abortRun());
 
+  ipcMain.handle("autodev:get-incidents", async () => autodevRuntime.getIncidents());
+
+  ipcMain.handle("autodev:update-incident", async (_e, incidentId: string, status: string, resolvedBy?: string) =>
+    autodevRuntime.updateIncidentStatus(incidentId, status as any, resolvedBy),
+  );
+
   ipcMain.handle("worker:runNow", async () => autodevRuntime.startRun());
 
   ipcMain.handle("worker:abort", async () => autodevRuntime.abortRun());
