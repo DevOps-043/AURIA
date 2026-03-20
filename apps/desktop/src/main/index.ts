@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, session as electronSession } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session as electronSession } from "electron";
 import { join } from "node:path";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { createDemoWorkspaceSnapshot } from "@auria/domain";
@@ -217,6 +217,15 @@ autodevRuntime.setSecretResolver((key: string) => secureStore.getItem(key));
 
 const getPreloadPath = () => join(__dirname, "../preload/index.cjs");
 
+function resolveWindowIcon(): Electron.NativeImage | undefined {
+  if (process.platform === "darwin") return undefined; // macOS uses the app bundle icon
+  const basePath = app.isPackaged
+    ? join(process.resourcesPath, "resources")
+    : join(__dirname, "../../resources");
+  const iconPath = join(basePath, process.platform === "win32" ? "tray-icon.ico" : "icon.png");
+  return existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined;
+}
+
 const wait = (ms: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
@@ -332,6 +341,7 @@ const createMainWindow = async () => {
     height: 900,
     backgroundColor: "#0B0F14",
     title: "Auria",
+    icon: resolveWindowIcon(),
     autoHideMenuBar: true,
     center: true,
     show: false, // Show when ready to prevent flicker
@@ -360,10 +370,6 @@ const createMainWindow = async () => {
 
   await loadRenderer(mainWindow);
 
-  // Open DevTools in development after the renderer has mounted.
-  if (process.env.ELECTRON_RENDERER_URL) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
-  }
 };
 
 // ─── Worker state (demo mode) ─────────────────────────────────────

@@ -20,7 +20,15 @@
     buildResources: "build",
   },
   files: ["out"],
+  extraResources: [
+    {
+      from: "resources",
+      to: "resources",
+      filter: ["**/*"],
+    },
+  ],
   win: {
+    icon: "build/icon.ico",
     target: [
       {
         target: "nsis",
