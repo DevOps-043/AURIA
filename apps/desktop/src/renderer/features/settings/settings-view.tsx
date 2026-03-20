@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
   Settings,
-  Shield,
   Link2,
   CreditCard,
   Download,
@@ -13,13 +12,12 @@ import {
 } from 'lucide-react';
 import { ProfileForm } from './components/profile-form';
 import { GitHubConnect } from './components/github-connect';
-import { SecurityForm } from './components/security-form';
 import { BillingConsole } from './components/billing-console';
 import { ApiKeysManager } from './components/api-keys-manager';
 import { GeneralSettings } from './components/general-settings';
 import { UpdatePanel } from './components/update-panel';
 
-type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'privacy' | 'billing' | 'updates';
+type SettingsTab = 'general' | 'profile' | 'connections' | 'api-keys' | 'billing' | 'updates';
 
 export const SettingsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -69,12 +67,6 @@ export const SettingsView: React.FC = () => {
               onClick={() => setActiveTab('api-keys')}
               icon={<Key className="w-4 h-4" />}
               label="API Keys"
-            />
-            <TabButton
-              active={activeTab === 'privacy'} 
-              onClick={() => setActiveTab('privacy')}
-              icon={<Shield className="w-4 h-4" />}
-              label="Privacidad y control"
             />
             <TabButton
               active={activeTab === 'billing'}
@@ -152,17 +144,6 @@ export const SettingsView: React.FC = () => {
                     icon={<Key className="w-5 h-5" />}
                   />
                   <ApiKeysManager />
-                </section>
-              )}
-
-              {activeTab === 'privacy' && (
-                <section className="space-y-8 md:space-y-10 min-w-0">
-                  <SectionHeader 
-                    title="Privacidad y control" 
-                    subtitle="Administra acceso, credenciales y opciones de control de datos"
-                    icon={<Shield className="w-5 h-5" />}
-                  />
-                  <SecurityForm />
                 </section>
               )}
 

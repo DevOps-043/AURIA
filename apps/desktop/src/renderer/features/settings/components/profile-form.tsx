@@ -22,8 +22,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/shared/hooks/use-auth';
 import { supabase } from '@/shared/api/supabase-client';
 import { Button } from '@/shared/components/ui/button';
+import { SecurityForm } from './security-form';
 
-type FormTab = 'general' | 'professional' | 'localization' | 'notifications';
+type FormTab = 'general' | 'professional' | 'localization' | 'notifications' | 'security';
 
 export const ProfileForm: React.FC = () => {
   const { user } = useAuth();
@@ -152,8 +153,19 @@ export const ProfileForm: React.FC = () => {
         <SubTabButton active={activeTab === 'professional'} onClick={() => setActiveTab('professional')} label="Profesional" />
         <SubTabButton active={activeTab === 'localization'} onClick={() => setActiveTab('localization')} label="Ubicacion" />
         <SubTabButton active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} label="Notificaciones" />
+        <SubTabButton active={activeTab === 'security'} onClick={() => setActiveTab('security')} label="Seguridad" />
       </div>
 
+      {activeTab === 'security' ? (
+        <motion.div
+          key="security"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <SecurityForm />
+        </motion.div>
+      ) : (
       <form onSubmit={handleUpdateProfile} className="space-y-12">
         <AnimatePresence mode="wait">
           <motion.div
@@ -421,6 +433,7 @@ export const ProfileForm: React.FC = () => {
           </div>
         </div>
       </form>
+      )}
     </div>
   );
 };
